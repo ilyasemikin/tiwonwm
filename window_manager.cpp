@@ -12,9 +12,7 @@ window_manager::window_manager(xcb_connection_t *conn, int scr_num) :
 }
 
 window_manager::~window_manager() {
-    if (connection != nullptr) {
-        free(connection);
-    }
+    xcb_disconnect(connection);
 }
 
 unique_ptr<window_manager> window_manager::create() {
