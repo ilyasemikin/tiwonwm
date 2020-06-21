@@ -6,7 +6,7 @@ int main() {
     auto wm = window_manager::create();
 
     if (wm == nullptr) {
-        cerr << "Can't launch window manager" << endl;
+        cerr << "Error: can't launch window manager" << endl;
         exit(EXIT_FAILURE);
     }
 
