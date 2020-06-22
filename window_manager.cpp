@@ -1,15 +1,21 @@
+#include "window_manager.hpp"
+
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
 #include <vector>
-#include "window_manager.hpp"
+
 using namespace std;
 
 WindowManager::WindowManager(xcb_connection_t *conn, int scr_num) : 
     screen_number_(scr_num),
-    connection_(conn)
+    connection_(conn),
+    // TODO: не использовать константу, получать число извне
+    workspaces_(9, Workspace(conn)),
+    current_ws_(0)
 {
-    
+
 }
 
 WindowManager::~WindowManager() {
@@ -103,14 +109,13 @@ void WindowManager::EventLoop() {
 }
 
 // Events
-// TODO: rewrite
 void WindowManager::OnConfigureRequest(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_configure_request_event_t *>(raw_event);
 
     auto &window_id = event->window;
     
-    if (w_clients_.count(window_id)) {
-        // TODO: write
+    if (workspaces_[current_ws_].Has(window_id)) {
+        // TODO: разобраться что нужно делать в данном случае
         return;
     }
 
@@ -153,49 +158,14 @@ void WindowManager::OnMapRequest(xcb_generic_event_t *raw_event) {
 
     auto window_id = event->window;
 
-    if (w_clients_.count(window_id)) {
+    if (workspaces_[current_ws_].Has(window_id)) {
         // Окно уже отрисовано
         // TODO: Разобраться, как нужно поступить в таком случае
         // ничего не делаем
         return;
     }
 
-    // Получаем позицию и размер окна
-    auto geometry = xcb_get_geometry_reply(
-        connection_,
-        xcb_get_geometry(connection_, window_id),
-        NULL
-    );
-
-    auto &client = w_clients_[window_id] = {};
-
-    client.id = window_id;
-    client.x = geometry->x;
-    client.y = geometry->y;
-    client.width = geometry->width;
-    client.height = geometry->height;
-
-    free(geometry);
-
-    // Изменяем размеры и позицию окна
-    // пробуем
-    uint16_t mask = XCB_CONFIG_WINDOW_X
-                  | XCB_CONFIG_WINDOW_Y
-                  | XCB_CONFIG_WINDOW_WIDTH
-                  | XCB_CONFIG_WINDOW_HEIGHT;
-    uint32_t values[]{ 
-        static_cast<uint32_t>(client.x),
-        static_cast<uint32_t>(client.y),
-        client.width,
-        client.height
-    };
-
-    xcb_configure_window(
-        connection_,
-        window_id,
-        mask,
-        values
-    );
+    workspaces_[current_ws_].AddWindow(window_id);
 
     // Размещаем окно
     xcb_map_window(connection_, window_id);
@@ -208,7 +178,7 @@ void WindowManager::OnUnmapNotify(xcb_generic_event_t *raw_event) {
 
     auto &window_id = event->window;
 
-    if (w_clients_.count(window_id)) {
-        w_clients_.erase(window_id);
+    if (workspaces_[current_ws_].Has(window_id)) {
+        workspaces_[current_ws_].RemoveWindow(window_id);
     }
 }
