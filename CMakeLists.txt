@@ -14,3 +14,5 @@ set(
 add_link_options("-lxcb")
 
 add_executable(wm ${SOURCES})
+
+target_compile_options(wm PRIVATE -Wall -Wextra -pedantic -Werror)
