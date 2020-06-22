@@ -6,40 +6,40 @@
 #include <unordered_map>
 #include <xcb/xcb.h>
 
-class window_manager {
+class WindowManager {
 public:
-    static std::unique_ptr<window_manager> create();
+    static std::unique_ptr<WindowManager> Create();
 
-    ~window_manager();
+    ~WindowManager();
 
-    enum class r_state {
+    enum class ResultState {
         OK,
         ERROR
     };
 
-    struct result {
-        r_state state;
+    struct RunResult {
+        ResultState state;
         std::string message;
     };
 
-    result run();
+    RunResult Run();
 private:
-    window_manager(xcb_connection_t *conn, int scr_n);
+    WindowManager(xcb_connection_t *conn, int scr_n);
 
-    bool substructure_redirect();
-    void event_loop();
+    bool SubstructureRedirect();
+    void EventLoop();
 
     // Events
     // TODO: rewrite
     using event_handler = std::function<void(xcb_generic_event_t *)>;
 
-    void on_configure_request(xcb_generic_event_t *raw_event);
-    void on_map_request(xcb_generic_event_t *raw_event);
-    void on_unmap_notify(xcb_generic_event_t *raw_event);
+    void OnConfigureRequest(xcb_generic_event_t *raw_event);
+    void OnMapRequest(xcb_generic_event_t *raw_event);
+    void OnUnmapNotify(xcb_generic_event_t *raw_event);
 
-    int screen_number;
-    xcb_window_t root_window;
-    xcb_connection_t *connection;
+    int screen_number_;
+    xcb_window_t root_window_;
+    xcb_connection_t *connection_;
 
     // Clients
     // TODO: rewrite
@@ -49,5 +49,5 @@ private:
         uint16_t width, height;
     };
 
-    std::unordered_map<uint8_t, w_client> w_clients;
+    std::unordered_map<uint8_t, w_client> w_clients_;
 };

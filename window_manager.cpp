@@ -5,18 +5,18 @@
 #include "window_manager.hpp"
 using namespace std;
 
-window_manager::window_manager(xcb_connection_t *conn, int scr_num) : 
-    screen_number(scr_num),
-    connection(conn)
+WindowManager::WindowManager(xcb_connection_t *conn, int scr_num) : 
+    screen_number_(scr_num),
+    connection_(conn)
 {
     
 }
 
-window_manager::~window_manager() {
-    xcb_disconnect(connection);
+WindowManager::~WindowManager() {
+    xcb_disconnect(connection_);
 }
 
-unique_ptr<window_manager> window_manager::create() {
+unique_ptr<WindowManager> WindowManager::Create() {
     int screen_n = 0;
     auto connection = xcb_connect(nullptr, &screen_n);
 
@@ -24,28 +24,28 @@ unique_ptr<window_manager> window_manager::create() {
         return nullptr;
     }
 
-    return unique_ptr<window_manager>(new window_manager(connection, screen_n));
+    return unique_ptr<WindowManager>(new WindowManager(connection, screen_n));
 }
 
-window_manager::result window_manager::run() {
-    auto iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
+WindowManager::RunResult WindowManager::Run() {
+    auto iter = xcb_setup_roots_iterator(xcb_get_setup(connection_));
 
-    for (int i = 0; i < screen_number; i++) {
+    for (int i = 0; i < screen_number_; i++) {
         xcb_screen_next(&iter);
     }
 
-    root_window = iter.data->root;
+    root_window_ = iter.data->root;
 
-    if (!substructure_redirect()) {
-        return { r_state::ERROR, "can't substructure redirect" };
+    if (!SubstructureRedirect()) {
+        return { ResultState::ERROR, "can't substructure redirect" };
     }
 
-    event_loop();
+    EventLoop();
 
-    return { r_state::OK, "" };
+    return { ResultState::OK, "" };
 }
 
-bool window_manager::substructure_redirect() {
+bool WindowManager::SubstructureRedirect() {
     uint32_t mask = XCB_CW_EVENT_MASK;
     uint32_t values[] {
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
@@ -54,15 +54,15 @@ bool window_manager::substructure_redirect() {
     };
 
     auto attr_cookie = xcb_change_window_attributes_checked(
-        connection,
-        root_window,
+        connection_,
+        root_window_,
         mask,
         values
     );
 
-    xcb_flush(connection);
+    xcb_flush(connection_);
 
-    auto error = xcb_request_check(connection, attr_cookie);
+    auto error = xcb_request_check(connection_, attr_cookie);
 
     if (error != nullptr) {
         return false;
@@ -71,15 +71,15 @@ bool window_manager::substructure_redirect() {
     return true;
 }
 
-void window_manager::event_loop() {
+void WindowManager::EventLoop() {
     unordered_map<uint8_t, event_handler> events {
-        { XCB_UNMAP_NOTIFY,         bind(&window_manager::on_unmap_notify, this, placeholders::_1) },
-        { XCB_MAP_REQUEST,          bind(&window_manager::on_map_request, this, placeholders::_1) },
-        { XCB_CONFIGURE_REQUEST,    bind(&window_manager::on_configure_request, this, placeholders::_1) }
+        { XCB_UNMAP_NOTIFY,         bind(&WindowManager::OnUnmapNotify, this, placeholders::_1) },
+        { XCB_MAP_REQUEST,          bind(&WindowManager::OnMapRequest, this, placeholders::_1) },
+        { XCB_CONFIGURE_REQUEST,    bind(&WindowManager::OnConfigureRequest, this, placeholders::_1) }
     };
 
     while (true) {
-        auto event = xcb_poll_for_event(connection);
+        auto event = xcb_poll_for_event(connection_);
 
         if (event == nullptr) {
             continue;
@@ -104,12 +104,12 @@ void window_manager::event_loop() {
 
 // Events
 // TODO: rewrite
-void window_manager::on_configure_request(xcb_generic_event_t *raw_event) {
+void WindowManager::OnConfigureRequest(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_configure_request_event_t *>(raw_event);
 
     auto &window_id = event->window;
     
-    if (w_clients.count(window_id)) {
+    if (w_clients_.count(window_id)) {
         // TODO: write
         return;
     }
@@ -139,21 +139,21 @@ void window_manager::on_configure_request(xcb_generic_event_t *raw_event) {
 
     if (values.size()) {
         xcb_configure_window(
-            connection,
+            connection_,
             window_id,
             mask,
             values.data()
         );
-        xcb_flush(connection);
+        xcb_flush(connection_);
     }
 }
 
-void window_manager::on_map_request(xcb_generic_event_t *raw_event) {
+void WindowManager::OnMapRequest(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_map_request_event_t *>(raw_event);
 
     auto window_id = event->window;
 
-    if (w_clients.count(window_id)) {
+    if (w_clients_.count(window_id)) {
         // Окно уже отрисовано
         // TODO: Разобраться, как нужно поступить в таком случае
         // ничего не делаем
@@ -162,12 +162,12 @@ void window_manager::on_map_request(xcb_generic_event_t *raw_event) {
 
     // Получаем позицию и размер окна
     auto geometry = xcb_get_geometry_reply(
-        connection,
-        xcb_get_geometry(connection, window_id),
+        connection_,
+        xcb_get_geometry(connection_, window_id),
         NULL
     );
 
-    auto &client = w_clients[window_id] = {};
+    auto &client = w_clients_[window_id] = {};
 
     client.id = window_id;
     client.x = geometry->x;
@@ -191,24 +191,24 @@ void window_manager::on_map_request(xcb_generic_event_t *raw_event) {
     };
 
     xcb_configure_window(
-        connection,
+        connection_,
         window_id,
         mask,
         values
     );
 
     // Размещаем окно
-    xcb_map_window(connection, window_id);
+    xcb_map_window(connection_, window_id);
 
-    xcb_flush(connection);
+    xcb_flush(connection_);
 }
 
-void window_manager::on_unmap_notify(xcb_generic_event_t *raw_event) {
+void WindowManager::OnUnmapNotify(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_unmap_notify_event_t *>(raw_event);
 
     auto &window_id = event->window;
 
-    if (w_clients.count(window_id)) {
-        w_clients.erase(window_id);
+    if (w_clients_.count(window_id)) {
+        w_clients_.erase(window_id);
     }
 }

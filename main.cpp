@@ -3,15 +3,15 @@
 using namespace std;
 
 int main() {
-    auto wm = window_manager::create();
+    unique_ptr<WindowManager> wm = WindowManager::Create();
 
     if (wm == nullptr) {
         cerr << "Error: can't launch window manager" << endl;
         exit(EXIT_FAILURE);
     }
 
-    auto wm_exit_state = wm->run();
-    if (wm_exit_state.state == window_manager::r_state::ERROR) {
+    WindowManager::RunResult wm_exit_state = wm->Run();
+    if (wm_exit_state.state == WindowManager::ResultState::ERROR) {
         cerr << "Error: " << wm_exit_state.message << endl;
     }
 
