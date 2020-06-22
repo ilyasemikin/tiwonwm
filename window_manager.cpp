@@ -6,8 +6,8 @@
 using namespace std;
 
 window_manager::window_manager(xcb_connection_t *conn, int scr_num) : 
-    connection(conn),
-    screen_number(scr_num)    
+    screen_number(scr_num),
+    connection(conn)
 {
     
 }
@@ -30,11 +30,13 @@ unique_ptr<window_manager> window_manager::create() {
 window_manager::result window_manager::run() {
     auto iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
 
-    for (size_t i = 0; i < screen_number; i++) {
+    for (int i = 0; i < screen_number; i++) {
         xcb_screen_next(&iter);
     }
 
-    if (!substructure_redirect(iter.data->root)) {
+    root_window = iter.data->root;
+
+    if (!substructure_redirect()) {
         return { r_state::ERROR, "can't substructure redirect" };
     }
 
@@ -43,7 +45,7 @@ window_manager::result window_manager::run() {
     return { r_state::OK, "" };
 }
 
-bool window_manager::substructure_redirect(xcb_window_t root_window) {
+bool window_manager::substructure_redirect() {
     uint32_t mask = XCB_CW_EVENT_MASK;
     uint32_t values[] {
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
@@ -70,6 +72,12 @@ bool window_manager::substructure_redirect(xcb_window_t root_window) {
 }
 
 void window_manager::event_loop() {
+    unordered_map<uint8_t, event_handler> events {
+        { XCB_UNMAP_NOTIFY,         bind(&window_manager::on_unmap_notify, this, placeholders::_1) },
+        { XCB_MAP_REQUEST,          bind(&window_manager::on_map_request, this, placeholders::_1) },
+        { XCB_CONFIGURE_REQUEST,    bind(&window_manager::on_configure_request, this, placeholders::_1) }
+    };
+
     while (true) {
         auto event = xcb_poll_for_event(connection);
 
@@ -78,16 +86,16 @@ void window_manager::event_loop() {
         }
 
         auto event_type = event->response_type & (~0x80);
-        cout << "-> event " << setw(3) << event_type << endl;
+        cout << "-> event " << setw(3) << event_type << ": ";
 
-        if (event_type == XCB_CONFIGURE_REQUEST) {
-            on_configure_request(event);
+        auto finded = events.find(event_type);
+        if (finded != events.end()) {
+            finded->second(event);
+            
+            cout << "processed" << endl;
         }
-        else if (event_type == XCB_MAP_REQUEST) {
-            on_map_request(event);
-        }
-        else if (event_type == XCB_UNMAP_NOTIFY) {
-            on_unmap_notify(event);
+        else {
+            cout <<  "not unknown" << endl;
         }
 
         free(event);
@@ -152,8 +160,44 @@ void window_manager::on_map_request(xcb_generic_event_t *raw_event) {
         return;
     }
 
-    w_clients[window_id] = { window_id };
+    // Получаем позицию и размер окна
+    auto geometry = xcb_get_geometry_reply(
+        connection,
+        xcb_get_geometry(connection, window_id),
+        NULL
+    );
 
+    auto &client = w_clients[window_id] = {};
+
+    client.id = window_id;
+    client.x = geometry->x;
+    client.y = geometry->y;
+    client.width = geometry->width;
+    client.height = geometry->height;
+
+    free(geometry);
+
+    // Изменяем размеры и позицию окна
+    // пробуем
+    uint16_t mask = XCB_CONFIG_WINDOW_X
+                  | XCB_CONFIG_WINDOW_Y
+                  | XCB_CONFIG_WINDOW_WIDTH
+                  | XCB_CONFIG_WINDOW_HEIGHT;
+    uint32_t values[]{ 
+        static_cast<uint32_t>(client.x),
+        static_cast<uint32_t>(client.y),
+        client.width,
+        client.height
+    };
+
+    xcb_configure_window(
+        connection,
+        window_id,
+        mask,
+        values
+    );
+
+    // Размещаем окно
     xcb_map_window(connection, window_id);
 
     xcb_flush(connection);
