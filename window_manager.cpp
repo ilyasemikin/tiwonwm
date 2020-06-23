@@ -36,13 +36,22 @@ unique_ptr<WindowManager> WindowManager::Create() {
 WindowManager::RunResult WindowManager::Run() {
     auto iter = xcb_setup_roots_iterator(xcb_get_setup(connection_));
 
+    display_ = make_shared<Display>();
+
     for (int i = 0; i < screen_number_; i++) {
         xcb_screen_next(&iter);
     }
 
-    root_window_ = iter.data->root;
+    auto &data = iter.data;
+    root_window_ = data->root;
+    display_->width = data->width_in_pixels;
+    display_->height = data->height_in_pixels;
 
-    if (!SubstructureRedirect()) {
+    for (auto &ws : workspaces_) {
+        ws.SetDisplay(display_);
+    }
+
+    if (!SetUp()) {
         return { ResultState::ERROR, "can't substructure redirect" };
     }
 
@@ -51,10 +60,13 @@ WindowManager::RunResult WindowManager::Run() {
     return { ResultState::OK, "" };
 }
 
-bool WindowManager::SubstructureRedirect() {
+bool WindowManager::SetUp() {
     uint32_t mask = XCB_CW_EVENT_MASK;
     uint32_t values[] {
-        XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
+        XCB_EVENT_MASK_BUTTON_PRESS
+      | XCB_EVENT_MASK_BUTTON_RELEASE
+      | XCB_EVENT_MASK_FOCUS_CHANGE
+      | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
       | XCB_EVENT_MASK_STRUCTURE_NOTIFY
       | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
     };
@@ -77,11 +89,29 @@ bool WindowManager::SubstructureRedirect() {
     return true;
 }
 
+// TODO: По завершении разработки убрать
+// используется исключительно для понимания работы
+#define EVENT_WITH_NAME(x) { x, #x }
+
 void WindowManager::EventLoop() {
     unordered_map<uint8_t, event_handler> events {
+        { XCB_BUTTON_PRESS,         bind(&WindowManager::OnButtonPress, this, placeholders::_1) },
+        { XCB_BUTTON_RELEASE,       bind(&WindowManager::OnButtonRelease, this, placeholders::_1) },
         { XCB_UNMAP_NOTIFY,         bind(&WindowManager::OnUnmapNotify, this, placeholders::_1) },
         { XCB_MAP_REQUEST,          bind(&WindowManager::OnMapRequest, this, placeholders::_1) },
         { XCB_CONFIGURE_REQUEST,    bind(&WindowManager::OnConfigureRequest, this, placeholders::_1) }
+    };
+
+    unordered_map<uint8_t, string> events_names {
+        EVENT_WITH_NAME(XCB_BUTTON_PRESS),
+        EVENT_WITH_NAME(XCB_BUTTON_RELEASE),
+        EVENT_WITH_NAME(XCB_DESTROY_NOTIFY),
+        EVENT_WITH_NAME(XCB_UNMAP_NOTIFY),
+        EVENT_WITH_NAME(XCB_MAP_NOTIFY),
+        EVENT_WITH_NAME(XCB_MAP_REQUEST),
+        EVENT_WITH_NAME(XCB_CONFIGURE_NOTIFY),
+        EVENT_WITH_NAME(XCB_CONFIGURE_REQUEST),
+        EVENT_WITH_NAME(XCB_MAPPING_NOTIFY)
     };
 
     while (true) {
@@ -92,7 +122,9 @@ void WindowManager::EventLoop() {
         }
 
         auto event_type = event->response_type & (~0x80);
-        cout << "-> event " << setw(3) << event_type << ": ";
+        cout << "-> event " << setw(3) << event_type 
+             << setw(30) << (events_names.count(event_type) ? events_names[event_type] : "UNKNOWN NAME")
+             << ": ";
 
         auto finded = events.find(event_type);
         if (finded != events.end()) {
@@ -101,7 +133,7 @@ void WindowManager::EventLoop() {
             cout << "processed" << endl;
         }
         else {
-            cout <<  "not unknown" << endl;
+            cout <<  "not processed" << endl;
         }
 
         free(event);
@@ -109,6 +141,14 @@ void WindowManager::EventLoop() {
 }
 
 // Events
+void WindowManager::OnButtonPress(xcb_generic_event_t *) {
+
+}
+
+void WindowManager::OnButtonRelease(xcb_generic_event_t *) {
+
+}
+
 void WindowManager::OnConfigureRequest(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_configure_request_event_t *>(raw_event);
 
@@ -166,11 +206,6 @@ void WindowManager::OnMapRequest(xcb_generic_event_t *raw_event) {
     }
 
     workspaces_[current_ws_].AddWindow(window_id);
-
-    // Размещаем окно
-    xcb_map_window(connection_, window_id);
-
-    xcb_flush(connection_);
 }
 
 void WindowManager::OnUnmapNotify(xcb_generic_event_t *raw_event) {
@@ -178,7 +213,9 @@ void WindowManager::OnUnmapNotify(xcb_generic_event_t *raw_event) {
 
     auto &window_id = event->window;
 
-    if (workspaces_[current_ws_].Has(window_id)) {
-        workspaces_[current_ws_].RemoveWindow(window_id);
+    if (!workspaces_[current_ws_].Has(window_id)) {
+        return;
     }
+    
+    workspaces_[current_ws_].RemoveWindow(window_id);
 }
