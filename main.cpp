@@ -1,9 +1,17 @@
 #include <iostream>
+
 #include "window_manager.hpp"
+#include "utils.hpp"
+
 using namespace std;
 
 int main() {
-    unique_ptr<WindowManager> wm = WindowManager::Create();
+    Config config;
+    config.count_workspaces = 10;
+    config.ws_config.border_width = 2;
+    config.ws_config.border_color = GetColor(255, 0, 0);
+
+    unique_ptr<WindowManager> wm = WindowManager::Create(config);
 
     if (wm == nullptr) {
         cerr << "Error: can't launch window manager" << endl;

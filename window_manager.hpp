@@ -9,10 +9,11 @@
 
 #include "display.hpp"
 #include "workspace.hpp"
+#include "configs.hpp"
 
 class WindowManager {
 public:
-    static std::unique_ptr<WindowManager> Create();
+    static std::unique_ptr<WindowManager> Create(const Config &config);
 
     ~WindowManager();
 
@@ -28,7 +29,7 @@ public:
 
     RunResult Run();
 private:
-    WindowManager(xcb_connection_t *conn, int scr_n);
+    WindowManager(xcb_connection_t *conn, int scr_n, const Config &config);
 
     bool SetUp();
     void EventLoop();
@@ -47,6 +48,8 @@ private:
     int screen_number_;
     xcb_window_t root_window_;
     xcb_connection_t *connection_;
+
+    Config config_;
 
     // Workspaces
     std::vector<Workspace> workspaces_;

@@ -6,23 +6,27 @@
 #include <iomanip>
 #include <vector>
 
+#include "utils.hpp"
+
 using namespace std;
 
-WindowManager::WindowManager(xcb_connection_t *conn, int scr_num) : 
+WindowManager::WindowManager(xcb_connection_t *conn, int scr_num, const Config &config) : 
     screen_number_(scr_num),
     connection_(conn),
-    // TODO: не использовать константу, получать число извне
-    workspaces_(9, Workspace(conn)),
+    config_(config),
+    workspaces_(config_.count_workspaces, Workspace(conn)),
     current_ws_(0)
 {
-
+    for (auto &ws : workspaces_) {
+        ws.SetConfig(config_.ws_config);
+    }
 }
 
 WindowManager::~WindowManager() {
     xcb_disconnect(connection_);
 }
 
-unique_ptr<WindowManager> WindowManager::Create() {
+unique_ptr<WindowManager> WindowManager::Create(const Config &config) {
     int screen_n = 0;
     auto connection = xcb_connect(nullptr, &screen_n);
 
@@ -30,7 +34,7 @@ unique_ptr<WindowManager> WindowManager::Create() {
         return nullptr;
     }
 
-    return unique_ptr<WindowManager>(new WindowManager(connection, screen_n));
+    return unique_ptr<WindowManager>(new WindowManager(connection, screen_n, config));
 }
 
 WindowManager::RunResult WindowManager::Run() {

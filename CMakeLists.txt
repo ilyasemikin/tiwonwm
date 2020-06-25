@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 set(
     SOURCES
+    utils.cpp
     workspace.cpp
     window_manager.cpp
     main.cpp

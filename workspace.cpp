@@ -2,14 +2,14 @@
 
 #include <algorithm>
 
+#include "utils.hpp"
+
 using namespace std;
 
 Workspace::Workspace(xcb_connection_t *connection) :
-    connection_(connection),
-    kBorderColor((0xFF << 16) | (0x1F << 8) | 0xFF),
-    kBorderWidth(4)
+    connection_(connection)
 {
-
+    SetDefaultConfig();
 }
 
 void Workspace::AddWindow(xcb_window_t w_id) {
@@ -20,15 +20,16 @@ void Workspace::AddWindow(xcb_window_t w_id) {
         connection_,
         w_id,
         XCB_CW_BORDER_PIXEL,
-        &kBorderColor
+        &config_.border_color
     );
 
+    uint32_t value = static_cast<uint32_t>(config_.border_width);
     // Устанавливаем ширину рамок окна
     xcb_configure_window(
         connection_,
         w_id,
         XCB_CONFIG_WINDOW_BORDER_WIDTH,
-        &kBorderWidth
+        &value
     );
 
     // Добавляем окно в X Save Set, чтобы в случае падения оконного менеджера
@@ -79,6 +80,15 @@ void Workspace::SetDisplay(shared_ptr<Display> display) {
     display_ = move(display);
 }
 
+void Workspace::SetConfig(const WorkspaceConfig &config) {
+    config_ = config;
+}
+
+void Workspace::SetDefaultConfig() {
+    config_.border_width = 4;
+    config_.border_color = GetColor(0xFF, 0xFF, 0xFF);
+}
+
 // FIXME: при определенном количестве окон на экране появляется
 // полоса в пару пикселей справа
 void Workspace::ResizeWindows() {
@@ -93,8 +103,8 @@ void Workspace::ResizeWindows() {
 
     uint32_t values[4] = {
         0, 0,
-        width_per_win - 2 * kBorderWidth,
-        height_per_win - 2 * kBorderWidth
+        width_per_win - 2 * config_.border_width,
+        height_per_win - 2 * config_.border_width
     };
     
     size_t x = 0;
