@@ -105,12 +105,14 @@ void WindowManager::EventLoop() {
     unordered_map<uint8_t, string> events_names {
         EVENT_WITH_NAME(XCB_BUTTON_PRESS),
         EVENT_WITH_NAME(XCB_BUTTON_RELEASE),
+        EVENT_WITH_NAME(XCB_CREATE_NOTIFY),
         EVENT_WITH_NAME(XCB_DESTROY_NOTIFY),
         EVENT_WITH_NAME(XCB_UNMAP_NOTIFY),
         EVENT_WITH_NAME(XCB_MAP_NOTIFY),
         EVENT_WITH_NAME(XCB_MAP_REQUEST),
         EVENT_WITH_NAME(XCB_CONFIGURE_NOTIFY),
         EVENT_WITH_NAME(XCB_CONFIGURE_REQUEST),
+        EVENT_WITH_NAME(XCB_CLIENT_MESSAGE),
         EVENT_WITH_NAME(XCB_MAPPING_NOTIFY)
     };
 
@@ -152,14 +154,43 @@ void WindowManager::OnButtonRelease(xcb_generic_event_t *) {
 void WindowManager::OnConfigureRequest(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_configure_request_event_t *>(raw_event);
 
+    auto &mask = event->value_mask;
     auto &window_id = event->window;
     
     if (workspaces_[current_ws_].Has(window_id)) {
-        // TODO: разобраться что нужно делать в данном случае
+        // TODO: в дальнейшем продумать, как действовать в данном случае.
+        // т.е. решить проблему с приложениями, которые требуют иной конфигурации
+        // отличной от той, которую задаем мы 
+        uint16_t width = 0;
+        uint16_t height = 0;
+
+        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+            width = event->width;
+        }
+        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+            height = event->height;
+        }
+
+        if (width || height) {
+            uint32_t values[] {
+                width,
+                height
+            };
+
+            xcb_configure_window(
+                connection_,
+                window_id,
+                XCB_CONFIG_WINDOW_WIDTH
+              | XCB_CONFIG_WINDOW_HEIGHT,
+                values
+            );
+
+            xcb_flush(connection_);
+        }
+
         return;
     }
 
-    auto &mask = event->value_mask;
     vector<uint32_t> values;
     values.reserve(7);
 
@@ -216,6 +247,6 @@ void WindowManager::OnUnmapNotify(xcb_generic_event_t *raw_event) {
     if (!workspaces_[current_ws_].Has(window_id)) {
         return;
     }
-    
+
     workspaces_[current_ws_].RemoveWindow(window_id);
 }

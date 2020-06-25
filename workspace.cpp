@@ -6,14 +6,12 @@ using namespace std;
 
 Workspace::Workspace(xcb_connection_t *connection) :
     connection_(connection),
-    kBorderColor((0xFF << 16) | (0xFF << 8) | 0xFF),
+    kBorderColor((0xFF << 16) | (0x1F << 8) | 0xFF),
     kBorderWidth(4)
 {
 
 }
 
-// FIXME: по какой-то причине xfce4-terminal не обновляет окно
-// необходимо с этим разобраться
 void Workspace::AddWindow(xcb_window_t w_id) {
     windows_.push_back({ w_id });
 
@@ -81,6 +79,8 @@ void Workspace::SetDisplay(shared_ptr<Display> display) {
     display_ = move(display);
 }
 
+// FIXME: при определенном количестве окон на экране появляется
+// полоса в пару пикселей справа
 void Workspace::ResizeWindows() {
     auto count_windows = windows_.size();
 
@@ -99,9 +99,9 @@ void Workspace::ResizeWindows() {
     
     size_t x = 0;
 
-    for (const auto &window : windows_) {
+    for (auto &window : windows_) {
         values[0] = x;
-        
+
         xcb_configure_window(
             connection_,
             window.id,
