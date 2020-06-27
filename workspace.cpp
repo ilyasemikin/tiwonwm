@@ -20,7 +20,7 @@ void Workspace::AddWindow(xcb_window_t w_id) {
         connection_,
         w_id,
         XCB_CW_BORDER_PIXEL,
-        &config_.border_color
+        &config_.unfocused_border_color
     );
 
     uint32_t value = static_cast<uint32_t>(config_.border_width);
@@ -47,9 +47,7 @@ void Workspace::AddWindow(xcb_window_t w_id) {
 }
 
 void Workspace::RemoveWindow(xcb_window_t w_id) {
-    auto it = find_if(begin(windows_), end(windows_), [w_id](const auto &x) {
-        return x.id == w_id;
-    });
+    auto it = FindWindow(w_id);
 
     if (it == end(windows_)) {
         return;
@@ -81,13 +79,7 @@ void Workspace::Hide() {
 }
 
 bool Workspace::Has(xcb_window_t w_id) {
-    return find_if(
-        begin(windows_),
-        end(windows_),
-        [w_id](const auto &x) {
-            return x.id == w_id;
-        }
-    ) != end(windows_);
+    return FindWindow(w_id) != end(windows_);
 }
 
 void Workspace::SetDisplay(shared_ptr<Display> display) {
@@ -100,7 +92,14 @@ void Workspace::SetConfig(const WorkspaceConfig &config) {
 
 void Workspace::SetDefaultConfig() {
     config_.border_width = 4;
-    config_.border_color = GetColor(0xFF, 0xFF, 0xFF);
+    config_.unfocused_border_color = GetColor(0xFF, 0xFF, 0xFF);
+    config_.focused_border_color = GetColor(0, 0, 0);
+}
+
+typename vector<Window>::iterator Workspace::FindWindow(xcb_window_t w_id) {
+    return find_if(begin(windows_), end(windows_), [w_id](const auto &x) {
+        return x.id == w_id;
+    });
 }
 
 // FIXME: при определенном количестве окон на экране появляется

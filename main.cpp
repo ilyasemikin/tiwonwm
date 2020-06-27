@@ -7,9 +7,11 @@ using namespace std;
 
 int main() {
     Config config;
+    config.terminal = "xfce4-terminal";
     config.count_workspaces = 10;
     config.ws_config.border_width = 2;
-    config.ws_config.border_color = GetColor(255, 0, 0);
+    config.ws_config.unfocused_border_color = GetColor(255, 0, 0);
+    config.ws_config.focused_border_color = GetColor(0, 0, 255);
 
     unique_ptr<WindowManager> wm = WindowManager::Create(config);
 

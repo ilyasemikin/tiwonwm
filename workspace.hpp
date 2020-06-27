@@ -27,7 +27,6 @@ public:
     void SetDisplay(std::shared_ptr<Display> display);
 
     void SetConfig(const WorkspaceConfig &config);
-
     void SetDefaultConfig();
 private:    
     xcb_connection_t *connection_;
@@ -38,6 +37,8 @@ private:
 
     std::vector<Window> windows_;
     typename std::vector<Window>::iterator active_window_;
+
+    typename std::vector<Window>::iterator FindWindow(xcb_window_t w_id);
 
     void ResizeWindows();
 };

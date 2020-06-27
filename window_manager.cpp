@@ -1,5 +1,6 @@
 #include "window_manager.hpp"
 
+#include <unistd.h>
 #include <xcb/xcb_util.h>
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
@@ -144,6 +145,10 @@ bool WindowManager::SetUpKeys() {
         free(key_code);
     }
 
+    auto terminal_open_key_code = xcb_key_symbols_get_keycode(key_symbs, XK_Return);
+    terminal_open_key_ = *terminal_open_key_code;
+    free(terminal_open_key_code);
+
     xcb_key_symbols_free(key_symbs);
 
     return true;
@@ -185,12 +190,40 @@ void WindowManager::EventLoop() {
     }
 }
 
+void WindowManager::ExecApplication(const std::string &program_name) {
+    auto pid = fork();
+
+    if (pid == -1) {
+        return;
+    }
+    else if (pid == 0) {
+        char *const argv[] { nullptr };
+
+        // Делаем процесс ведущим в группе
+        // т.о. после падения оконного менеджера процесс будет жить дальше
+        if (setsid() == -1) {
+            exit(EXIT_FAILURE);
+        }
+
+        if (execvp(program_name.c_str(), argv) == -1) {
+            exit(EXIT_FAILURE);
+        }
+
+        exit(EXIT_SUCCESS);
+    }
+}
+
 // Events
 void WindowManager::OnKeyPress(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_key_press_event_t *>(raw_event);
 
     if (ws_change_keys_.count(event->detail) && (event->state & XCB_MOD_MASK_4)) {
         SetWorkspace(ws_change_keys_[event->detail]);
+    }
+    else if (event->detail == terminal_open_key_ 
+         && (event->state & XCB_MOD_MASK_4)
+         && !config_.terminal.empty()) {
+        ExecApplication(config_.terminal);
     }
     else {
         // Передача комбинации в случае, если комбинацию мы не обрабатываем
