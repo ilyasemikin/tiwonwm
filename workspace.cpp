@@ -66,6 +66,20 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
     ResizeWindows();
 }
 
+void Workspace::Show() {
+    for (auto &window : windows_) {
+        xcb_map_window(connection_, window.id);
+    }
+    xcb_flush(connection_);
+}
+
+void Workspace::Hide() {
+    for (auto &window : windows_) {
+        xcb_unmap_window(connection_, window.id);
+    }
+    xcb_flush(connection_);
+}
+
 bool Workspace::Has(xcb_window_t w_id) {
     return find_if(
         begin(windows_),

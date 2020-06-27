@@ -14,6 +14,8 @@ set(
 )
 
 add_link_options("-lxcb")
+add_link_options("-lxcb-keysyms")
+add_link_options("-lxcb-util")
 
 add_executable(wm ${SOURCES})
 

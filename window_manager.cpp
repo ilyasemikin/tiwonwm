@@ -1,5 +1,9 @@
 #include "window_manager.hpp"
 
+#include <xcb/xcb_util.h>
+#include <xcb/xcb_keysyms.h>
+#include <X11/keysym.h>
+
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
@@ -55,6 +59,10 @@ WindowManager::RunResult WindowManager::Run() {
         ws.SetDisplay(display_);
     }
 
+    if (!SetUpKeys()) {
+        return { ResultState::ERROR, "can't set up keys" };
+    }
+
     if (!SetUp()) {
         return { ResultState::ERROR, "can't substructure redirect" };
     }
@@ -67,6 +75,7 @@ WindowManager::RunResult WindowManager::Run() {
 bool WindowManager::SetUp() {
     uint32_t mask = XCB_CW_EVENT_MASK;
     uint32_t values[] {
+        // XCB_EVENT_MASK_KEY_PRESS
         XCB_EVENT_MASK_BUTTON_PRESS
       | XCB_EVENT_MASK_BUTTON_RELEASE
       | XCB_EVENT_MASK_FOCUS_CHANGE
@@ -93,31 +102,61 @@ bool WindowManager::SetUp() {
     return true;
 }
 
-// TODO: По завершении разработки убрать
-// используется исключительно для понимания работы
-#define EVENT_WITH_NAME(x) { x, #x }
+// TODO: в данный момент обработатывается клавиши путем перехвата
+// нажатий всех комбинаций с кнопками. В дальнейшем сделать перехват
+// определенных последовательной
+bool WindowManager::SetUpKeys() {
+    vector ws_change_keys {
+        XK_1,
+        XK_2,
+        XK_3,
+        XK_4,
+        XK_5,
+        XK_6,
+        XK_7,
+        XK_8,
+        XK_9,
+        XK_0
+    };
+
+    size_t ws_num = 0;
+    auto key_symbs = xcb_key_symbols_alloc(connection_);
+
+    auto super_l_key_code = xcb_key_symbols_get_keycode(key_symbs, XK_Super_L);
+
+    xcb_grab_key(
+        connection_,
+        1,
+        root_window_,
+        XCB_MOD_MASK_ANY,
+        *super_l_key_code,
+        XCB_GRAB_MODE_ASYNC,
+        XCB_GRAB_MODE_ASYNC
+    );
+
+    free(super_l_key_code);
+
+    for (const auto &key : ws_change_keys) {
+        auto key_code = xcb_key_symbols_get_keycode(key_symbs, key);
+
+        ws_change_keys_.insert({ *key_code, ws_num++ });
+
+        free(key_code);
+    }
+
+    xcb_key_symbols_free(key_symbs);
+
+    return true;
+}
 
 void WindowManager::EventLoop() {
     unordered_map<uint8_t, event_handler> events {
+        { XCB_KEY_PRESS,            bind(&WindowManager::OnKeyPress, this, placeholders::_1) },
         { XCB_BUTTON_PRESS,         bind(&WindowManager::OnButtonPress, this, placeholders::_1) },
         { XCB_BUTTON_RELEASE,       bind(&WindowManager::OnButtonRelease, this, placeholders::_1) },
         { XCB_UNMAP_NOTIFY,         bind(&WindowManager::OnUnmapNotify, this, placeholders::_1) },
         { XCB_MAP_REQUEST,          bind(&WindowManager::OnMapRequest, this, placeholders::_1) },
         { XCB_CONFIGURE_REQUEST,    bind(&WindowManager::OnConfigureRequest, this, placeholders::_1) }
-    };
-
-    unordered_map<uint8_t, string> events_names {
-        EVENT_WITH_NAME(XCB_BUTTON_PRESS),
-        EVENT_WITH_NAME(XCB_BUTTON_RELEASE),
-        EVENT_WITH_NAME(XCB_CREATE_NOTIFY),
-        EVENT_WITH_NAME(XCB_DESTROY_NOTIFY),
-        EVENT_WITH_NAME(XCB_UNMAP_NOTIFY),
-        EVENT_WITH_NAME(XCB_MAP_NOTIFY),
-        EVENT_WITH_NAME(XCB_MAP_REQUEST),
-        EVENT_WITH_NAME(XCB_CONFIGURE_NOTIFY),
-        EVENT_WITH_NAME(XCB_CONFIGURE_REQUEST),
-        EVENT_WITH_NAME(XCB_CLIENT_MESSAGE),
-        EVENT_WITH_NAME(XCB_MAPPING_NOTIFY)
     };
 
     while (true) {
@@ -129,7 +168,7 @@ void WindowManager::EventLoop() {
 
         auto event_type = event->response_type & (~0x80);
         cout << "-> event " << setw(3) << event_type 
-             << setw(30) << (events_names.count(event_type) ? events_names[event_type] : "UNKNOWN NAME")
+             << setw(20) << xcb_event_get_label(event_type)
              << ": ";
 
         auto finded = events.find(event_type);
@@ -147,6 +186,26 @@ void WindowManager::EventLoop() {
 }
 
 // Events
+void WindowManager::OnKeyPress(xcb_generic_event_t *raw_event) {
+    auto event = reinterpret_cast<xcb_key_press_event_t *>(raw_event);
+
+    if (ws_change_keys_.count(event->detail) && (event->state & XCB_MOD_MASK_4)) {
+        SetWorkspace(ws_change_keys_[event->detail]);
+    }
+    else {
+        // Передача комбинации в случае, если комбинацию мы не обрабатываем
+        // FIXME: Заставить нормально работать
+        xcb_send_event(
+            connection_,
+            false,
+            XCB_SEND_EVENT_DEST_ITEM_FOCUS,
+            XCB_EVENT_MASK_NO_EVENT,
+            reinterpret_cast<char *>(event)
+        );
+        xcb_flush(connection_);
+    }
+}
+
 void WindowManager::OnButtonPress(xcb_generic_event_t *) {
 
 }
@@ -253,4 +312,16 @@ void WindowManager::OnUnmapNotify(xcb_generic_event_t *raw_event) {
     }
 
     workspaces_[current_ws_].RemoveWindow(window_id);
+}
+
+void WindowManager::SetWorkspace(size_t ws_number) {
+    if (current_ws_ == ws_number) {
+        return;
+    }
+    
+    workspaces_[current_ws_].Hide();
+
+    current_ws_ = ws_number;
+
+    workspaces_[current_ws_].Show();
 }

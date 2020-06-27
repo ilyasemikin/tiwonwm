@@ -17,6 +17,9 @@ public:
     void AddWindow(xcb_window_t w_id);
     void RemoveWindow(xcb_window_t w_id);
 
+    void Show();
+    void Hide();
+
     bool Has(xcb_window_t w_id);
 
     // TODO: в дальнейшем стоит рассмотреть алтернативные варианты
