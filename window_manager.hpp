@@ -45,6 +45,7 @@ private:
     void OnKeyPress(xcb_generic_event_t *raw_event);
     void OnButtonPress(xcb_generic_event_t *raw_event);
     void OnButtonRelease(xcb_generic_event_t *raw_event);
+    void OnEnterNotify(xcb_generic_event_t *raw_event);
     void OnConfigureRequest(xcb_generic_event_t *raw_event);
     void OnMapRequest(xcb_generic_event_t *raw_event);
     void OnUnmapNotify(xcb_generic_event_t *raw_event);

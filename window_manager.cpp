@@ -159,6 +159,7 @@ void WindowManager::EventLoop() {
         { XCB_KEY_PRESS,            bind(&WindowManager::OnKeyPress, this, placeholders::_1) },
         { XCB_BUTTON_PRESS,         bind(&WindowManager::OnButtonPress, this, placeholders::_1) },
         { XCB_BUTTON_RELEASE,       bind(&WindowManager::OnButtonRelease, this, placeholders::_1) },
+        { XCB_ENTER_NOTIFY,         bind(&WindowManager::OnEnterNotify, this, placeholders::_1 ) },
         { XCB_UNMAP_NOTIFY,         bind(&WindowManager::OnUnmapNotify, this, placeholders::_1) },
         { XCB_MAP_REQUEST,          bind(&WindowManager::OnMapRequest, this, placeholders::_1) },
         { XCB_CONFIGURE_REQUEST,    bind(&WindowManager::OnConfigureRequest, this, placeholders::_1) }
@@ -245,6 +246,14 @@ void WindowManager::OnButtonPress(xcb_generic_event_t *) {
 
 void WindowManager::OnButtonRelease(xcb_generic_event_t *) {
 
+}
+
+void WindowManager::OnEnterNotify(xcb_generic_event_t *raw_event) {
+    auto event = reinterpret_cast<xcb_enter_notify_event_t *>(raw_event);
+
+    if (event->mode == XCB_NOTIFY_MODE_NORMAL) {
+        workspaces_[current_ws_].SetFocus(event->event);
+    }
 }
 
 void WindowManager::OnConfigureRequest(xcb_generic_event_t *raw_event) {

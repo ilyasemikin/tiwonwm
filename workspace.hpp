@@ -4,7 +4,7 @@
 
 #include <memory>
 #include <string>
-#include <vector>
+#include <list>
 
 #include "display.hpp"
 #include "window.hpp"
@@ -19,6 +19,8 @@ public:
 
     void Show();
     void Hide();
+
+    void SetFocus(xcb_window_t w_id);
 
     bool Has(xcb_window_t w_id);
 
@@ -35,10 +37,11 @@ private:
 
     WorkspaceConfig config_;
 
-    std::vector<Window> windows_;
-    typename std::vector<Window>::iterator active_window_;
-
-    typename std::vector<Window>::iterator FindWindow(xcb_window_t w_id);
+    std::list<Window> windows_;
+    using window_iterator = typename std::list<Window>::iterator;
+    window_iterator active_window_;
+    
+    window_iterator FindWindow(xcb_window_t w_id);
 
     void ResizeWindows();
 };
