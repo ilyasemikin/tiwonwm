@@ -2,13 +2,11 @@
 
 Window::Window(xcb_connection_t *connection, xcb_window_t w_id) :
     connection_(connection),
-    id_(w_id)
+    id_(w_id),
+    in_focus(false),
+    is_maximized(false)
 {
 
-}
-
-xcb_window_t Window::GetId() const {
-    return id_;
 }
 
 void Window::Map() {
@@ -17,6 +15,38 @@ void Window::Map() {
 
 void Window::Unmap() {
     xcb_unmap_window(connection_, id_);
+}
+
+void Window::Focus(uint32_t color) {
+    in_focus = true;
+
+    // Утснавливаем цвет рамки
+    xcb_change_window_attributes(
+        connection_,
+        id_,
+        XCB_CW_BORDER_PIXEL,
+        &color
+    );
+
+    // Устанавливаем курсор (ввод) на окно
+    xcb_set_input_focus(
+        connection_,
+        XCB_INPUT_FOCUS_POINTER_ROOT,
+        id_,
+        XCB_CURRENT_TIME
+    );
+}
+
+void Window::Unfocus(uint32_t color) {
+    in_focus = false;
+
+    // Устанавливаем цвет рамки
+    xcb_change_window_attributes(
+        connection_,
+        id_,
+        XCB_CW_BORDER_PIXEL,
+        &color
+    );
 }
 
 void Window::MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) {

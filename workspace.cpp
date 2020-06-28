@@ -18,17 +18,6 @@ void Workspace::AddWindow(xcb_window_t w_id) {
     windows_.push_back({ connection_, w_id });
     auto it = prev(end(windows_));
 
-    // Устанавливаем цвет рамки для окна, бывщего до этого в фокусе
-    if (active_window_ != end(windows_)) {
-        xcb_change_window_attributes(
-            connection_,
-            active_window_->GetId(),
-            XCB_CW_BORDER_PIXEL,
-            &config_.unfocused_border_color
-        );
-    }
-    active_window_ = it;
-
     // Устанавливаем цвет рамки окна
     xcb_change_window_attributes(
         connection_,
@@ -55,7 +44,6 @@ void Workspace::AddWindow(xcb_window_t w_id) {
         &value
     );
     
-
     // Добавляем окно в X Save Set, чтобы в случае падения оконного менеджера
     // окно автоматически было востановлено
     xcb_change_save_set(
@@ -66,6 +54,8 @@ void Workspace::AddWindow(xcb_window_t w_id) {
 
     // Размещаем окно
     it->Map();
+
+    SetFocus(it->GetId());
 
     ResizeWindows();
 }
@@ -89,21 +79,7 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
 
         active_window_ = end(windows_);
         if (!windows_.empty()) {
-            active_window_ = prev(active_window_);
-
-            xcb_change_window_attributes(
-                connection_,
-                active_window_->GetId(),
-                XCB_CW_BORDER_PIXEL,
-                &config_.focused_border_color
-            );
-
-            xcb_set_input_focus(
-                connection_,
-                XCB_INPUT_FOCUS_POINTER_ROOT,
-                active_window_->GetId(),
-                XCB_CURRENT_TIME
-            );
+            SetFocus(windows_.back().GetId());
         }
     }
     else {
@@ -134,33 +110,15 @@ void Workspace::SetFocus(xcb_window_t w_id) {
 
     // Сбрасываем текущий фокус
     if (active_window_ != end(windows_)) {
-        xcb_change_window_attributes(
-            connection_,
-            active_window_->GetId(),
-            XCB_CW_BORDER_PIXEL,
-            &config_.unfocused_border_color
-        );
+        active_window_->Unfocus(config_.unfocused_border_color);
     }
 
     active_window_ = FindWindow(w_id);
-
     if (active_window_ == end(windows_)) {
         return;
     }
 
-    xcb_change_window_attributes(
-        connection_,
-        active_window_->GetId(),
-        XCB_CW_BORDER_PIXEL,
-        &config_.focused_border_color
-    );
-
-    xcb_set_input_focus(
-        connection_,
-        XCB_INPUT_FOCUS_POINTER_ROOT,
-        active_window_->GetId(),
-        XCB_CURRENT_TIME
-    );
+    active_window_->Focus(config_.focused_border_color);
 
     xcb_flush(connection_);
 }

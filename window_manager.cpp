@@ -76,7 +76,6 @@ WindowManager::RunResult WindowManager::Run() {
 bool WindowManager::SetUp() {
     uint32_t mask = XCB_CW_EVENT_MASK;
     uint32_t values[] {
-        // XCB_EVENT_MASK_KEY_PRESS
         XCB_EVENT_MASK_BUTTON_PRESS
       | XCB_EVENT_MASK_BUTTON_RELEASE
       | XCB_EVENT_MASK_FOCUS_CHANGE
