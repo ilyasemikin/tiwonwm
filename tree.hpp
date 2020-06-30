@@ -8,7 +8,86 @@
 #include <unordered_map>
 
 #include "display.hpp"
+#include "utils.hpp"
 #include "window.hpp"
+
+namespace TreeNodes {
+    enum class NodeType {
+        FRAME,
+        WINDOW
+    };
+
+    class Node : public std::enable_shared_from_this<Node> {
+    public:
+        virtual ~Node() {}
+
+        using ptr = std::shared_ptr<Node>;
+
+        virtual NodeType GetType() const = 0;
+
+        virtual std::string ToString() const = 0;
+
+        inline void SetParent(ptr node) {
+            parent_ = node;
+        }
+    private:
+        ptr parent_;
+    };
+
+    class Frame : public Node {
+    public:
+        NodeType GetType() const override {
+            return NodeType::FRAME;
+        }
+
+        std::string ToString() const override;
+
+        inline void SetOrientation(Orientation orient) {
+            orient_ = orient;
+        }
+
+        inline Orientation GetTilingType() {
+            return orient_;
+        }
+
+        inline size_t CountChilds() const {
+            return childs_.size();
+        }
+
+        inline Node::ptr GetChild(size_t pos) {
+            return childs_[pos];
+        }
+
+        void AddChild(Node::ptr node, size_t pos = 0);
+        void RemoveChild(size_t pos);
+        void RemoveChild(Node::ptr node);
+        void ReplaceChild(size_t pos, Node::ptr new_node);
+        void ReplaceChild(Node::ptr node, Node::ptr new_node);
+        bool ContainsChild(Node::ptr node);
+    private:
+        std::vector<Node::ptr> childs_;
+        Orientation orient_;
+
+        std::vector<Node::ptr>::iterator FindChild(Node::ptr node);
+    };
+
+    class Window : public Node {
+    public:
+        Window(xcb_window_t id);
+
+        inline NodeType GetType() const override {
+            return NodeType::WINDOW;
+        }
+
+        std::string ToString() const override;
+
+        inline xcb_window_t GetId() const {
+            return id_;
+        }
+    private:
+        xcb_window_t id_;
+    };
+}
 
 enum class TilingOrientation {
     VERTICAL,
