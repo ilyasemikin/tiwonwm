@@ -6,16 +6,20 @@
 #include <string>
 #include <list>
 
-#include "display.hpp"
-#include "window.hpp"
 #include "configs.hpp"
+#include "display.hpp"
+#include "tree.hpp"
+#include "window.hpp"
 
 class Workspace {
 public:
     Workspace(xcb_connection_t *connection);
 
-    void AddWindow(xcb_window_t w_id);
+    void InsertWindow(xcb_window_t w_id);
     void RemoveWindow(xcb_window_t w_id);
+
+    inline void SetTilingOrient(TilingOrientation orient) { tiling_orient_ = orient; }
+    inline TilingOrientation GetTilingOrient() const { return tiling_orient_; }
 
     void Show();
     void Hide();
@@ -37,11 +41,16 @@ private:
 
     WorkspaceConfig config_;
 
+    Tree wins_tree_;
+
     std::list<Window> windows_;
     using window_iterator = typename std::list<Window>::iterator;
     window_iterator active_window_;
-    
+
+    TilingOrientation tiling_orient_;
+
     window_iterator FindWindow(xcb_window_t w_id);
 
     void ResizeWindows();
+    void ShowFrames(const Tree::Frame &frame, int16_t x, int16_t y, uint32_t width, uint32_t height);
 };

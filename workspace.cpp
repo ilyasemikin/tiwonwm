@@ -14,7 +14,7 @@ Workspace::Workspace(xcb_connection_t *connection) :
     SetDefaultConfig();
 }
 
-void Workspace::AddWindow(xcb_window_t w_id) {
+void Workspace::InsertWindow(xcb_window_t w_id) {
     windows_.push_back({ connection_, w_id });
     auto it = prev(end(windows_));
 
@@ -55,6 +55,17 @@ void Workspace::AddWindow(xcb_window_t w_id) {
     // Размещаем окно
     it->Map();
 
+    if (wins_tree_.Empty()) {
+        wins_tree_.Add(it->GetId(), TilingOrientation::VERTICAL);
+    }
+    else {
+        wins_tree_.AddNeighbour(
+            active_window_->GetId(),
+            it->GetId(),
+            tiling_orient_
+        );
+    }
+
     SetFocus(it->GetId());
 
     ResizeWindows();
@@ -72,6 +83,8 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
         XCB_SET_MODE_DELETE,
         w_id
     );
+
+    wins_tree_.Remove(it->GetId());
 
     // Если удаляемое окно последнее, то фокусируемся на предпоследнем
     if (active_window_ == it) {
@@ -150,26 +163,58 @@ Workspace::window_iterator Workspace::FindWindow(xcb_window_t w_id) {
 // FIXME: при определенном количестве окон на экране появляется
 // полоса в пару пикселей справа
 void Workspace::ResizeWindows() {
-    auto count_windows = windows_.size();
+    auto main_frame = wins_tree_.GetStructure();
 
-    if (count_windows == 0) {
+    if (!main_frame.IsEmpty()) {
+        ShowFrames(
+            main_frame,
+            0, 0,
+            display_->width, display_->height
+        );
+
+        xcb_flush(connection_);
+    }
+}
+
+// В данный момент имеется проблема - не учитывается рамка, создаваемая оконным менеджер
+// TODO: доработать
+void Workspace::ShowFrames(const Tree::Frame &frame, int16_t x, int16_t y, uint32_t width, uint32_t height) {
+    if (frame.IsWindow()) {
+        auto it = FindWindow(frame.GetWindowId());
+
+        it->MoveResize(
+            x, y,
+            width, height
+        );
+
         return;
     }
 
-    uint32_t width_per_win = display_->width / count_windows;
-    uint32_t height_per_win = display_->height;
+    auto c_count = frame.ChildsCount();
+    if (frame.IsVerticalFrame()) {
+        height /= c_count;
 
-    size_t x = 0;
+        for (size_t i = 0; i < c_count; i++) {
+            ShowFrames(
+                frame.GetChild(i),
+                x, y,
+                width, height
+            );
 
-    for (auto &window : windows_) {
-        window.MoveResize(
-            x, 0,
-            width_per_win - 2 * config_.border_width,
-            height_per_win - 2 * config_.border_width
-        );
-
-        x += width_per_win;
+            y += height;
+        }
     }
+    else {
+        width /= c_count;
 
-    xcb_flush(connection_);
+        for (size_t i = 0; i < c_count; i++) {
+            ShowFrames(
+                frame.GetChild(i),
+                x, y,
+                width, height
+            );
+
+            x += width;
+        }
+    }
 }

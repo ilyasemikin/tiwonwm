@@ -80,6 +80,12 @@ void Tree::Remove(xcb_window_t w_id) {
     }
 
     auto node = id_to_node_[w_id];
+
+    // Обрабатываем случай, когда дерево содержит единственное окно
+    if (node->parent == root_ && node->parent->childs.size() == 1) {
+        root_.reset();
+    }
+
     // Случай, когда фрейм, владеющий окном на удаление, имеет еще одно
     if (node->parent->childs.size() == 2) {
         if (node->parent == root_) {
@@ -135,7 +141,7 @@ string Tree::GetStructureString() {
 
 string Tree::GetStructureString(std::shared_ptr<Node> node) {
     if (node == nullptr) {
-        return "";
+        return "empty";
     }
 
     if (node->type == NodeType::WINDOW) {

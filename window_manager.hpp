@@ -67,4 +67,5 @@ private:
     // Keys
     std::unordered_map<xcb_keycode_t, size_t> ws_change_keys_;
     xcb_keycode_t terminal_open_key_;
+    xcb_keycode_t switch_tiling_key_;
 };

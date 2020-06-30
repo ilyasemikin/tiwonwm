@@ -148,6 +148,10 @@ bool WindowManager::SetUpKeys() {
     terminal_open_key_ = *terminal_open_key_code;
     free(terminal_open_key_code);
 
+    auto switch_tiling_key_code = xcb_key_symbols_get_keycode(key_symbs, XK_S);
+    switch_tiling_key_ = *switch_tiling_key_code;
+    free(switch_tiling_key_code);
+
     xcb_key_symbols_free(key_symbs);
 
     return true;
@@ -178,9 +182,9 @@ void WindowManager::EventLoop() {
 
         auto finded = events.find(event_type);
         if (finded != events.end()) {
-            finded->second(event);
-            
             cout << "processed" << endl;
+
+            finded->second(event);
         }
         else {
             cout <<  "not processed" << endl;
@@ -224,6 +228,14 @@ void WindowManager::OnKeyPress(xcb_generic_event_t *raw_event) {
          && (event->state & XCB_MOD_MASK_4)
          && !config_.terminal.empty()) {
         ExecApplication(config_.terminal);
+    }
+    else if (event->detail == switch_tiling_key_ && (event->state & XCB_MOD_MASK_4)) {
+        if (workspaces_[current_ws_].GetTilingOrient() == TilingOrientation::VERTICAL) {
+            workspaces_[current_ws_].SetTilingOrient(TilingOrientation::HORIZONTAL);
+        }
+        else {
+            workspaces_[current_ws_].SetTilingOrient(TilingOrientation::VERTICAL);
+        }
     }
     else {
         // Передача комбинации в случае, если комбинацию мы не обрабатываем
@@ -340,7 +352,7 @@ void WindowManager::OnMapRequest(xcb_generic_event_t *raw_event) {
         return;
     }
 
-    workspaces_[current_ws_].AddWindow(window_id);
+    workspaces_[current_ws_].InsertWindow(window_id);
 }
 
 void WindowManager::OnUnmapNotify(xcb_generic_event_t *raw_event) {
