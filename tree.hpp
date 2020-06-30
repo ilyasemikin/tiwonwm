@@ -16,6 +16,8 @@ enum class TilingOrientation {
 };
 
 class Tree {
+private:
+    class Frame;
 public:
     Tree();
 
@@ -23,6 +25,8 @@ public:
     void AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, TilingOrientation t_orient);
 
     void Remove(xcb_window_t w_id);
+
+    inline Frame GetStructure() { return Frame(root_); }
 
     std::string GetStructureString();
 private:
@@ -43,6 +47,20 @@ private:
         std::vector<ptr> childs;
 
         Node(NodeType n_type);
+    };
+
+    class Frame {
+    public:
+        Frame(Node::ptr node) : node_(node) {}
+
+        inline bool IsEmpty() { return node_ == nullptr; }
+        inline bool IsWindow() { return node_->type == NodeType::WINDOW; }
+        inline bool IsVerticalFrame() { return node_->type == NodeType::V_FRAME; }
+        inline bool IsHorizontalFrame() { return node_->type == NodeType::H_FRAME; }
+        inline size_t ChildsCount() { return node_->childs.size(); }
+        inline Frame GetChild(size_t i) { return Frame(node_->childs[i]); }
+    private:
+        Node::ptr node_;
     };
 
     std::unordered_map<xcb_window_t, Node::ptr> id_to_node_;
