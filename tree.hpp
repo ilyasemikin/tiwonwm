@@ -22,6 +22,8 @@ public:
     void Add(xcb_window_t w_id, TilingOrientation t_orient);
     void AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, TilingOrientation t_orient);
 
+    void Remove(xcb_window_t w_id);
+
     std::string GetStructureString();
 private:
     enum class NodeType {
@@ -43,7 +45,7 @@ private:
         Node(NodeType n_type);
     };
 
-    std::unordered_map<xcb_window_t, Node::ptr> id_to_node;
+    std::unordered_map<xcb_window_t, Node::ptr> id_to_node_;
 
     std::shared_ptr<Node> root_;
 

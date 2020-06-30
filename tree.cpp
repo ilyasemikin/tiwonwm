@@ -21,11 +21,13 @@ void Tree::Add(xcb_window_t w_id, TilingOrientation t_orient) {
 
     root_->childs.push_back(new_win);
 
-    id_to_node.insert({ new_win->w_id, new_win });
+    id_to_node_.insert({ new_win->w_id, new_win });
 }
 
+// TODO: Подумать о реструктуризации кода функции
+// Возможно, не конечный вариант
 void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, TilingOrientation t_orient) { 
-    if (!id_to_node.count(w_id)) {
+    if (!id_to_node_.count(w_id)) {
         return;
     }
 
@@ -36,7 +38,7 @@ void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, TilingOrient
         return ret;
     };
 
-    auto node = id_to_node[w_id];
+    auto node = id_to_node_[w_id];
     if (node->parent->type == TOrientToNodeType(t_orient)) {
         auto node_pos = find(
             begin(node->parent->childs),
@@ -48,7 +50,7 @@ void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, TilingOrient
 
         new_win->parent->childs.insert(next(node_pos), new_win);
 
-        id_to_node.insert({ new_win->w_id, new_win });
+        id_to_node_.insert({ new_win->w_id, new_win });
     }
     else {
         auto frame_pos = node->parent->childs.erase(
@@ -68,8 +70,63 @@ void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, TilingOrient
         auto new_win = get_new_win(new_win_id, new_frame);
         new_win->parent->childs.push_back(new_win);
 
-        id_to_node.insert({ new_win->w_id, new_win });
+        id_to_node_.insert({ new_win->w_id, new_win });
     }
+}
+
+void Tree::Remove(xcb_window_t w_id) {
+    if (!id_to_node_.count(w_id)) {
+        return;
+    }
+
+    auto node = id_to_node_[w_id];
+    // Случай, когда фрейм, владеющий окном на удаление, имеет еще одно
+    if (node->parent->childs.size() == 2) {
+        if (node->parent == root_) {
+            root_->childs.erase(
+                find(
+                    begin(root_->childs),
+                    end(root_->childs),
+                    node
+                )
+            );
+        }
+        else {
+            node->parent->childs.erase(
+                find(
+                    begin(node->parent->childs),
+                    end(node->parent->childs),
+                    node
+                )
+            );
+
+            auto frame_to_delete = node->parent;
+
+            auto another_node = frame_to_delete->childs.front();
+
+            auto it = find(
+                begin(frame_to_delete->parent->childs),
+                end(frame_to_delete->parent->childs),
+                frame_to_delete
+            );
+
+            *it = another_node;
+            another_node->parent = frame_to_delete->parent;
+
+            frame_to_delete.reset();
+        }
+    }
+    else {
+        node->parent->childs.erase(
+            find(
+                begin(node->parent->childs),
+                end(node->parent->childs),
+                node
+            )
+        );
+    }
+
+    id_to_node_.erase(node->w_id);
 }
 
 string Tree::GetStructureString() {

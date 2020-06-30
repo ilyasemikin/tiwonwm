@@ -21,6 +21,9 @@ int main() {
 
     tree.AddNeighbour(2, 4, TilingOrientation::HORIZONTAL);
 
+    tree.Remove(4);
+    tree.Remove(0);
+
     cout << tree.GetStructureString() << endl;
 
     return EXIT_SUCCESS;
