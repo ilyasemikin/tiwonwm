@@ -176,15 +176,14 @@ void Workspace::ResizeWindows() {
     }
 }
 
-// В данный момент имеется проблема - не учитывается рамка, создаваемая оконным менеджер
-// TODO: доработать
 void Workspace::ShowFrames(const Tree::Frame &frame, int16_t x, int16_t y, uint32_t width, uint32_t height) {
     if (frame.IsWindow()) {
         auto it = FindWindow(frame.GetWindowId());
 
         it->MoveResize(
             x, y,
-            width, height
+            width - 2 * config_.border_width, 
+            height - 2 * config_.border_width
         );
 
         return;
