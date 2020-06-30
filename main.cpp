@@ -2,10 +2,31 @@
 
 #include "window_manager.hpp"
 #include "utils.hpp"
+// На время тестирования класса Tree
+// TODO: убрать по окочанию разработки класса
+#include "tree.hpp"
 
 using namespace std;
 
 int main() {
+    // Блок тестирования класса Tree
+    // TODO: убрать по окочанию разработки класса
+    Tree tree;
+
+    tree.Add(0, TilingOrientation::HORIZONTAL);
+    tree.Add(1, TilingOrientation::HORIZONTAL);
+
+    tree.AddNeighbour(0, 2, TilingOrientation::VERTICAL);
+    tree.AddNeighbour(0, 3, TilingOrientation::VERTICAL);
+
+    tree.AddNeighbour(2, 4, TilingOrientation::HORIZONTAL);
+
+    cout << tree.GetStructureString() << endl;
+
+    return EXIT_SUCCESS;
+
+    // До тех пор пока до конца не доделан класс Tree
+    // непосредственный запуск оконного менеджера не требуется    
     Config config;
     config.terminal = "xfce4-terminal";
     config.count_workspaces = 10;

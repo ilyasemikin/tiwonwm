@@ -9,6 +9,7 @@ set(
     SOURCES
     utils.cpp
     window.cpp
+    tree.cpp
     workspace.cpp
     window_manager.cpp
     main.cpp
