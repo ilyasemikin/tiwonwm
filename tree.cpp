@@ -4,8 +4,24 @@
 
 using namespace std;
 
+TreeNodes::Node::Node() :
+    parent_(nullptr)
+{
+
+}
+
+TreeNodes::Node::~Node() {
+
+}
+
+TreeNodes::Frame::Frame() :
+    orient_(Orientation::HORIZONTAL)
+{
+
+}
+
 string TreeNodes::Frame::ToString() const {
-    string ret = "[ " + to_string(orient_) + ": ";
+    string ret = "[ " + to_string(orient_) + " frame: ";
     for (size_t i = 0; i < childs_.size(); i++) {
         if (i != 0) {
             ret += ", ";
@@ -21,6 +37,15 @@ void TreeNodes::Frame::AddChild(Node::ptr node, size_t pos) {
     }
 
     childs_.insert(childs_.begin() + pos, node);
+    node->SetParent(shared_from_this());
+}
+
+void TreeNodes::Frame::AddChildAfter(Node::ptr after_node, Node::ptr node) {
+    auto it = FindChild(after_node);
+
+    // TODO: обработать случай, когда after_node не принадлежит Frame
+
+    childs_.insert(it, node);
     node->SetParent(shared_from_this());
 }
 
@@ -46,6 +71,7 @@ void TreeNodes::Frame::ReplaceChild(size_t pos, Node::ptr new_node) {
     }
 
     childs_[pos] = new_node;
+    new_node->SetParent(shared_from_this());
 }
 
 void TreeNodes::Frame::ReplaceChild(Node::ptr node, Node::ptr new_node) {
@@ -54,6 +80,7 @@ void TreeNodes::Frame::ReplaceChild(Node::ptr node, Node::ptr new_node) {
     if (it != end(childs_)) {
         *it = new_node;
     }
+    new_node->SetParent(shared_from_this());
 }
 
 bool TreeNodes::Frame::ContainsChild(Node::ptr node) {
@@ -80,68 +107,53 @@ Tree::Tree() :
 
 }
 
-void Tree::Add(xcb_window_t w_id, TilingOrientation t_orient) {
+void Tree::Add(xcb_window_t w_id) {
+    auto new_win = make_shared<TreeNodes::Window>(w_id);
+    
     if (root_ == nullptr) {
-        root_ = make_shared<Node>(TOrientToNodeType(t_orient));
+        auto frame = make_shared<TreeNodes::Frame>();
+        frame->AddChild(new_win);
+        
+        root_ = frame;
+    }
+    else {
+        auto frame = dynamic_pointer_cast<TreeNodes::Frame>(root_);
+        frame->AddChild(new_win);
     }
 
-    auto new_win = make_shared<Node>(NodeType::WINDOW);
-    new_win->w_id = w_id;
-    new_win->parent = root_;
-
-    root_->childs.push_back(new_win);
-
-    id_to_node_.insert({ new_win->w_id, new_win });
+    id_to_node_.insert({ new_win->GetId(), new_win });
 }
 
 // TODO: Подумать о реструктуризации кода функции
 // Возможно, не конечный вариант
-void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, TilingOrientation t_orient) { 
+void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, Orientation orient) { 
     if (!id_to_node_.count(w_id)) {
         return;
     }
 
-    auto get_new_win = [](auto id, auto parent) {
-        auto ret = make_shared<Node>(NodeType::WINDOW);
-        ret->w_id = id;
-        ret->parent = parent;
-        return ret;
-    };
-
+    auto new_win = make_shared<TreeNodes::Window>(new_win_id);
     auto node = id_to_node_[w_id];
-    if (node->parent->type == TOrientToNodeType(t_orient)) {
-        auto node_pos = find(
-            begin(node->parent->childs),
-            end(node->parent->childs),
-            node
-        );
+    auto parent = dynamic_pointer_cast<TreeNodes::Frame>(node->GetParent());
 
-        auto new_win = get_new_win(new_win_id, node->parent);
-
-        new_win->parent->childs.insert(next(node_pos), new_win);
-
-        id_to_node_.insert({ new_win->w_id, new_win });
+    if (parent->GetTilingType() == orient) {
+        parent->AddChildAfter(node, new_win);
     }
     else {
-        auto frame_pos = node->parent->childs.erase(
-            find(
-                begin(node->parent->childs),
-                end(node->parent->childs),
-                node
-            )
-        );
-        
-        auto new_frame = make_shared<Node>(TOrientToNodeType(t_orient));
-        new_frame->parent = node->parent;
-        node->parent = new_frame;
-        new_frame->childs.push_back(node);
-        new_frame->parent->childs.insert(frame_pos, new_frame);
+        if (parent->CountChilds() == 1) {
+            parent->SetOrientation(orient);
+            parent->AddChildAfter(node, new_win);
+        }
+        else {
+            auto new_frame = make_shared<TreeNodes::Frame>();
+            new_frame->SetOrientation(orient);
+            new_frame->AddChild(new_win);
 
-        auto new_win = get_new_win(new_win_id, new_frame);
-        new_win->parent->childs.push_back(new_win);
-
-        id_to_node_.insert({ new_win->w_id, new_win });
+            parent->ReplaceChild(node, new_frame);
+            new_frame->AddChild(node);
+        }
     }
+
+    id_to_node_.insert({ new_win->GetId(), new_win });
 }
 
 void Tree::Remove(xcb_window_t w_id) {
@@ -150,104 +162,27 @@ void Tree::Remove(xcb_window_t w_id) {
     }
 
     auto node = id_to_node_[w_id];
+    auto parent = dynamic_pointer_cast<TreeNodes::Frame>(node->GetParent());
 
-    // Обрабатываем случай, когда дерево содержит единственное окно
-    if (node->parent == root_ && node->parent->childs.size() == 1) {
+    if (parent->CountChilds() == 1 && node->GetParent() == root_) {
         root_.reset();
     }
-
-    // Случай, когда фрейм, владеющий окном на удаление, имеет еще одно
-    if (node->parent->childs.size() == 2) {
-        if (node->parent == root_) {
-            root_->childs.erase(
-                find(
-                    begin(root_->childs),
-                    end(root_->childs),
-                    node
-                )
-            );
-        }
-        else {
-            node->parent->childs.erase(
-                find(
-                    begin(node->parent->childs),
-                    end(node->parent->childs),
-                    node
-                )
-            );
-
-            auto frame_to_delete = node->parent;
-
-            auto another_node = frame_to_delete->childs.front();
-
-            auto it = find(
-                begin(frame_to_delete->parent->childs),
-                end(frame_to_delete->parent->childs),
-                frame_to_delete
-            );
-
-            *it = another_node;
-            another_node->parent = frame_to_delete->parent;
-
-            frame_to_delete.reset();
-        }
-    }
     else {
-        node->parent->childs.erase(
-            find(
-                begin(node->parent->childs),
-                end(node->parent->childs),
-                node
-            )
-        );
-    }
+        parent->RemoveChild(node);
 
-    id_to_node_.erase(node->w_id);
-}
-
-string Tree::GetStructureString() {
-    return GetStructureString(root_);
-}
-
-string Tree::GetStructureString(std::shared_ptr<Node> node) {
-    if (node == nullptr) {
-        return "empty";
-    }
-
-    if (node->type == NodeType::WINDOW) {
-        return to_string(node->w_id);
-    }
-    
-    string ret = "[ " + GetNodeTypeString(node->type) + ": ";
-    for (size_t i = 0; i < node->childs.size(); i++) {
-        if (i != 0) {
-            ret += ", ";
+        if (parent->CountChilds() == 1) {
+            if (node->GetParent() != root_) {
+                auto p = dynamic_pointer_cast<TreeNodes::Frame>(parent->GetParent());
+                p->ReplaceChild(parent, parent->GetChild(0));
+            }
+            else {
+                auto root = dynamic_pointer_cast<TreeNodes::Frame>(root_);
+                if (root->GetChild(0)->GetType() == TreeNodes::NodeType::FRAME) {
+                    root_ = root->GetChild(0);
+                }
+            }
         }
-        ret += GetStructureString(node->childs[i]);
     }
 
-    ret += " ]";
-
-    return ret;
-}
-
-string Tree::GetNodeTypeString(const NodeType &n_type) {
-    const unordered_map<NodeType, string> type_to_string {
-        { NodeType::WINDOW, "Window" },
-        { NodeType::H_FRAME, "Horizontal frame" },
-        { NodeType::V_FRAME, "Vertical frame" }
-    };
-    return type_to_string.at(n_type);
-}
-
-Tree::NodeType Tree::TOrientToNodeType(const TilingOrientation &t_orient) {
-    return t_orient == TilingOrientation::HORIZONTAL ? NodeType::H_FRAME : NodeType::V_FRAME;
-}
-
-Tree::Node::Node(NodeType n_type) :
-    type(n_type),
-    w_id(0),
-    parent(nullptr)
-{
-
+    id_to_node_.erase(w_id);
 }

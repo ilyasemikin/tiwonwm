@@ -230,12 +230,8 @@ void WindowManager::OnKeyPress(xcb_generic_event_t *raw_event) {
         ExecApplication(config_.terminal);
     }
     else if (event->detail == switch_tiling_key_ && (event->state & XCB_MOD_MASK_4)) {
-        if (workspaces_[current_ws_].GetTilingOrient() == TilingOrientation::VERTICAL) {
-            workspaces_[current_ws_].SetTilingOrient(TilingOrientation::HORIZONTAL);
-        }
-        else {
-            workspaces_[current_ws_].SetTilingOrient(TilingOrientation::VERTICAL);
-        }
+        auto &cur_ws = workspaces_[current_ws_];
+        cur_ws.SetTilingOrient(GetOtherOrientation(cur_ws.GetTilingOrient()));
     }
     else {
         // Передача комбинации в случае, если комбинацию мы не обрабатываем

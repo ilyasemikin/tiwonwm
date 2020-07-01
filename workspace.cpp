@@ -2,14 +2,14 @@
 
 #include <algorithm>
 
-#include "utils.hpp"
-
 using namespace std;
 
 Workspace::Workspace(xcb_connection_t *connection) :
     connection_(connection)
 {
     active_window_ = end(windows_);
+
+    t_orient_ = Orientation::HORIZONTAL;
 
     SetDefaultConfig();
 }
@@ -56,13 +56,13 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     it->Map();
 
     if (wins_tree_.Empty()) {
-        wins_tree_.Add(it->GetId(), TilingOrientation::VERTICAL);
+        wins_tree_.Add(it->GetId());
     }
     else {
         wins_tree_.AddNeighbour(
             active_window_->GetId(),
             it->GetId(),
-            tiling_orient_
+            t_orient_
         );
     }
 
@@ -163,11 +163,9 @@ Workspace::window_iterator Workspace::FindWindow(xcb_window_t w_id) {
 // FIXME: при определенном количестве окон на экране появляется
 // полоса в пару пикселей справа
 void Workspace::ResizeWindows() {
-    auto main_frame = wins_tree_.GetStructure();
-
-    if (!main_frame.IsEmpty()) {
+    if (!wins_tree_.Empty()) {
         ShowFrames(
-            main_frame,
+            wins_tree_.GetStructure(),
             0, 0,
             display_->width, display_->height
         );
@@ -176,9 +174,10 @@ void Workspace::ResizeWindows() {
     }
 }
 
-void Workspace::ShowFrames(const Tree::Frame &frame, int16_t x, int16_t y, uint32_t width, uint32_t height) {
-    if (frame.IsWindow()) {
-        auto it = FindWindow(frame.GetWindowId());
+void Workspace::ShowFrames(const TreeNodes::Node::ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
+    if (node->GetType() == TreeNodes::NodeType::WINDOW) {
+        auto win_node = dynamic_pointer_cast<TreeNodes::Window>(node);
+        auto it = FindWindow(win_node->GetId());
 
         it->MoveResize(
             x, y,
@@ -189,13 +188,14 @@ void Workspace::ShowFrames(const Tree::Frame &frame, int16_t x, int16_t y, uint3
         return;
     }
 
-    auto c_count = frame.ChildsCount();
-    if (frame.IsVerticalFrame()) {
+    auto frame_node = dynamic_pointer_cast<TreeNodes::Frame>(node);
+    auto c_count = frame_node->CountChilds();
+    if (frame_node->GetTilingType() == Orientation::VERTICAL) {
         height /= c_count;
 
         for (size_t i = 0; i < c_count; i++) {
             ShowFrames(
-                frame.GetChild(i),
+                frame_node->GetChild(i),
                 x, y,
                 width, height
             );
@@ -208,7 +208,7 @@ void Workspace::ShowFrames(const Tree::Frame &frame, int16_t x, int16_t y, uint3
 
         for (size_t i = 0; i < c_count; i++) {
             ShowFrames(
-                frame.GetChild(i),
+                frame_node->GetChild(i),
                 x, y,
                 width, height
             );

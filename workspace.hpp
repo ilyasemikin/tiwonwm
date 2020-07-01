@@ -10,6 +10,7 @@
 #include "display.hpp"
 #include "tree.hpp"
 #include "window.hpp"
+#include "utils.hpp"
 
 class Workspace {
 public:
@@ -18,8 +19,8 @@ public:
     void InsertWindow(xcb_window_t w_id);
     void RemoveWindow(xcb_window_t w_id);
 
-    inline void SetTilingOrient(TilingOrientation orient) { tiling_orient_ = orient; }
-    inline TilingOrientation GetTilingOrient() const { return tiling_orient_; }
+    inline void SetTilingOrient(Orientation orient) { t_orient_ = orient; }
+    inline Orientation GetTilingOrient() const { return t_orient_; }
 
     void Show();
     void Hide();
@@ -47,10 +48,10 @@ private:
     using window_iterator = typename std::list<Window>::iterator;
     window_iterator active_window_;
 
-    TilingOrientation tiling_orient_;
+    Orientation t_orient_;
 
     window_iterator FindWindow(xcb_window_t w_id);
 
     void ResizeWindows();
-    void ShowFrames(const Tree::Frame &frame, int16_t x, int16_t y, uint32_t width, uint32_t height);
+    void ShowFrames(const TreeNodes::Node::ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height);
 };
