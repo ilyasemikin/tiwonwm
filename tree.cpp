@@ -4,101 +4,103 @@
 
 using namespace std;
 
-TreeNodes::Node::Node() :
-    parent_(nullptr)
-{
+namespace TreeNodes {
+    Node::Node() :
+        parent_(nullptr)
+    {
 
-}
+    }
 
-TreeNodes::Node::~Node() {
+    Node::~Node() {
 
-}
+    }
 
-TreeNodes::Frame::Frame() :
-    orient_(Orientation::HORIZONTAL)
-{
+    Frame::Frame() :
+        orient_(Orientation::HORIZONTAL)
+    {
 
-}
+    }
 
-string TreeNodes::Frame::ToString() const {
-    string ret = "[ " + to_string(orient_) + " frame: ";
-    for (size_t i = 0; i < childs_.size(); i++) {
-        if (i != 0) {
-            ret += ", ";
+    string Frame::ToString() const {
+        string ret = "[ " + to_string(orient_) + " frame: ";
+        for (size_t i = 0; i < childs_.size(); i++) {
+            if (i != 0) {
+                ret += ", ";
+            }
+            ret += childs_[i]->ToString();
         }
-        ret += childs_[i]->ToString();
-    }
-    return ret += " ]";
-}
-
-void TreeNodes::Frame::AddChild(Node::ptr node, size_t pos) {
-    if (pos > childs_.size()) {
-        return;
+        return ret += " ]";
     }
 
-    childs_.insert(childs_.begin() + pos, node);
-    node->SetParent(shared_from_this());
-}
+    void Frame::AddChild(Node::ptr node, size_t pos) {
+        if (pos > childs_.size()) {
+            return;
+        }
 
-void TreeNodes::Frame::AddChildAfter(Node::ptr after_node, Node::ptr node) {
-    auto it = FindChild(after_node);
-
-    // TODO: обработать случай, когда after_node не принадлежит Frame
-
-    childs_.insert(it, node);
-    node->SetParent(shared_from_this());
-}
-
-void TreeNodes::Frame::RemoveChild(size_t pos) {
-    if (pos > childs_.size()) {
-        return;
+        childs_.insert(childs_.begin() + pos, node);
+        node->SetParent(shared_from_this());
     }
 
-    childs_.erase(childs_.begin() + pos);
-}
+    void Frame::AddChildAfter(Node::ptr after_node, Node::ptr node) {
+        auto it = FindChild(after_node);
 
-void TreeNodes::Frame::RemoveChild(Node::ptr node) {
-    auto it = FindChild(node);
+        // TODO: обработать случай, когда after_node не принадлежит Frame
 
-    if (it != end(childs_)) {
-        childs_.erase(it);
-    }
-}
-
-void TreeNodes::Frame::ReplaceChild(size_t pos, Node::ptr new_node) {
-    if (pos > childs_.size()) {
-        return;
+        childs_.insert(it, node);
+        node->SetParent(shared_from_this());
     }
 
-    childs_[pos] = new_node;
-    new_node->SetParent(shared_from_this());
-}
+    void Frame::RemoveChild(size_t pos) {
+        if (pos > childs_.size()) {
+            return;
+        }
 
-void TreeNodes::Frame::ReplaceChild(Node::ptr node, Node::ptr new_node) {
-    auto it = FindChild(node);
-
-    if (it != end(childs_)) {
-        *it = new_node;
+        childs_.erase(childs_.begin() + pos);
     }
-    new_node->SetParent(shared_from_this());
-}
 
-bool TreeNodes::Frame::ContainsChild(Node::ptr node) {
-    return FindChild(node) != end(childs_);
-}
+    void Frame::RemoveChild(Node::ptr node) {
+        auto it = FindChild(node);
 
-std::vector<TreeNodes::Node::ptr>::iterator TreeNodes::Frame::FindChild(Node::ptr node) {
-    return find(begin(childs_), end(childs_), node);
-}
+        if (it != end(childs_)) {
+            childs_.erase(it);
+        }
+    }
 
-TreeNodes::Window::Window(xcb_window_t id) : 
-    id_(id)
-{
+    void Frame::ReplaceChild(size_t pos, Node::ptr new_node) {
+        if (pos > childs_.size()) {
+            return;
+        }
 
-}
+        childs_[pos] = new_node;
+        new_node->SetParent(shared_from_this());
+    }
 
-string TreeNodes::Window::ToString() const {
-    return to_string(id_);
+    void Frame::ReplaceChild(Node::ptr node, Node::ptr new_node) {
+        auto it = FindChild(node);
+
+        if (it != end(childs_)) {
+            *it = new_node;
+        }
+        new_node->SetParent(shared_from_this());
+    }
+
+    bool Frame::ContainsChild(Node::ptr node) const {
+        return find(begin(childs_), end(childs_), node) != end(childs_);
+    }
+
+    vector<Node::ptr>::iterator Frame::FindChild(Node::ptr node) {
+        return find(begin(childs_), end(childs_), node);
+    }
+
+    Window::Window(xcb_window_t id) : 
+        id_(id)
+    {
+
+    }
+
+    string Window::ToString() const {
+        return to_string(id_);
+    }
 }
 
 Tree::Tree() :

@@ -23,6 +23,7 @@ namespace TreeNodes {
         virtual ~Node();
 
         using ptr = std::shared_ptr<Node>;
+        using const_ptr = std::shared_ptr<const Node>;
 
         virtual NodeType GetType() const = 0;
 
@@ -53,7 +54,7 @@ namespace TreeNodes {
             orient_ = orient;
         }
 
-        inline Orientation GetTilingType() {
+        inline Orientation GetTilingType() const {
             return orient_;
         }
 
@@ -65,13 +66,17 @@ namespace TreeNodes {
             return childs_[pos];
         }
 
+        inline Node::const_ptr GetConstChild(size_t pos) const {
+            return childs_[pos];
+        }
+
         void AddChild(Node::ptr node, size_t pos = 0);
         void AddChildAfter(Node::ptr after_node, Node::ptr node);
         void RemoveChild(size_t pos);
         void RemoveChild(Node::ptr node);
         void ReplaceChild(size_t pos, Node::ptr new_node);
         void ReplaceChild(Node::ptr node, Node::ptr new_node);
-        bool ContainsChild(Node::ptr node);
+        bool ContainsChild(Node::ptr node) const;
     private:
         std::vector<Node::ptr> childs_;
         Orientation orient_;
@@ -112,7 +117,7 @@ public:
 
     void Remove(xcb_window_t w_id);
 
-    TreeNodes::Node::ptr GetStructure() { return root_; }
+    TreeNodes::Node::const_ptr GetStructure() { return root_; }
 private:
     std::unordered_map<xcb_window_t, TreeNodes::Node::ptr> id_to_node_;
 

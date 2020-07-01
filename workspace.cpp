@@ -174,9 +174,9 @@ void Workspace::ResizeWindows() {
     }
 }
 
-void Workspace::ShowFrames(const TreeNodes::Node::ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
+void Workspace::ShowFrames(const TreeNodes::Node::const_ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
     if (node->GetType() == TreeNodes::NodeType::WINDOW) {
-        auto win_node = dynamic_pointer_cast<TreeNodes::Window>(node);
+        auto win_node = dynamic_pointer_cast<const TreeNodes::Window>(node);
         auto it = FindWindow(win_node->GetId());
 
         it->MoveResize(
@@ -188,14 +188,14 @@ void Workspace::ShowFrames(const TreeNodes::Node::ptr &node, int16_t x, int16_t 
         return;
     }
 
-    auto frame_node = dynamic_pointer_cast<TreeNodes::Frame>(node);
+    auto frame_node = dynamic_pointer_cast<const TreeNodes::Frame>(node);
     auto c_count = frame_node->CountChilds();
     if (frame_node->GetTilingType() == Orientation::VERTICAL) {
         height /= c_count;
 
         for (size_t i = 0; i < c_count; i++) {
             ShowFrames(
-                frame_node->GetChild(i),
+                frame_node->GetConstChild(i),
                 x, y,
                 width, height
             );
@@ -208,7 +208,7 @@ void Workspace::ShowFrames(const TreeNodes::Node::ptr &node, int16_t x, int16_t 
 
         for (size_t i = 0; i < c_count; i++) {
             ShowFrames(
-                frame_node->GetChild(i),
+                frame_node->GetConstChild(i),
                 x, y,
                 width, height
             );
