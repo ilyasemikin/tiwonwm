@@ -269,37 +269,8 @@ void WindowManager::OnConfigureRequest(xcb_generic_event_t *raw_event) {
     auto &mask = event->value_mask;
     auto &window_id = event->window;
     
-    if (workspaces_[current_ws_].Has(window_id)) {
-        // TODO: в дальнейшем продумать, как действовать в данном случае.
-        // т.е. решить проблему с приложениями, которые требуют иной конфигурации
-        // отличной от той, которую задаем мы 
-        uint16_t width = 0;
-        uint16_t height = 0;
-
-        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
-            width = event->width;
-        }
-        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
-            height = event->height;
-        }
-
-        if (width || height) {
-            uint32_t values[] {
-                width,
-                height
-            };
-
-            xcb_configure_window(
-                connection_,
-                window_id,
-                XCB_CONFIG_WINDOW_WIDTH
-              | XCB_CONFIG_WINDOW_HEIGHT,
-                values
-            );
-
-            xcb_flush(connection_);
-        }
-
+    if (workspaces_[current_ws_].Contains(window_id)) {
+        workspaces_[current_ws_].ProcessEventByWindow(window_id, raw_event);
         return;
     }
 
@@ -341,7 +312,7 @@ void WindowManager::OnMapRequest(xcb_generic_event_t *raw_event) {
 
     auto window_id = event->window;
 
-    if (workspaces_[current_ws_].Has(window_id)) {
+    if (workspaces_[current_ws_].Contains(window_id)) {
         // Окно уже отрисовано
         // TODO: Разобраться, как нужно поступить в таком случае
         // ничего не делаем
@@ -356,7 +327,7 @@ void WindowManager::OnUnmapNotify(xcb_generic_event_t *raw_event) {
 
     auto &window_id = event->window;
 
-    if (!workspaces_[current_ws_].Has(window_id)) {
+    if (!workspaces_[current_ws_].Contains(window_id)) {
         return;
     }
 

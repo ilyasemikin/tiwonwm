@@ -139,8 +139,45 @@ void Workspace::SetFocus(xcb_window_t w_id) {
     xcb_flush(connection_);
 }
 
-bool Workspace::Has(xcb_window_t w_id) {
+bool Workspace::Contains(xcb_window_t w_id) {
     return FindWindow(w_id) != end(windows_);
+}
+
+void Workspace::ProcessEventByWindow(xcb_window_t w_id, xcb_generic_event_t *raw_event) {
+    auto it = FindWindow(w_id);
+    if (it == end(windows_)) {
+        return;
+    }
+    
+    if (raw_event->response_type & XCB_CONFIGURE_REQUEST) {
+        // Ответ на CONFIGURE_REQUEST - игнорируем запрос
+        // и отправляем собственный ответ, которым задаем нужные
+        // нам параметры
+
+        auto raw_memory = new byte[32];
+        auto res_event = reinterpret_cast<xcb_configure_notify_event_t *>(raw_memory);
+
+        res_event->event = it->GetId();
+        res_event->window = it->GetId();
+        res_event->response_type = XCB_CONFIGURE_NOTIFY;
+
+        res_event->x = it->GetX();
+        res_event->y = it->GetY();
+        res_event->width = it->GetWidth();
+        res_event->height = it->GetHeight();
+
+        xcb_send_event(
+            connection_,
+            false,
+            it->GetId(),
+            XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+            reinterpret_cast<char *>(res_event)
+        );
+
+        xcb_flush(connection_);
+
+        delete[] raw_memory;
+    }
 }
 
 void Workspace::SetDisplay(shared_ptr<Display> display) {
@@ -182,10 +219,16 @@ void Workspace::ShowFrames(const TreeNodes::Node::const_ptr &node, int16_t x, in
         auto win_node = dynamic_pointer_cast<const TreeNodes::Window>(node);
         auto it = FindWindow(win_node->GetId());
 
+        it->SetX(x);
+        it->SetY(y);
+        it->SetWidth(width - 2 * config_.border_width);
+        it->SetHeight(height - 2 * config_.border_width);
+
         it->MoveResize(
-            x, y,
-            width - 2 * config_.border_width, 
-            height - 2 * config_.border_width
+            it->GetX(),
+            it->GetY(),
+            it->GetWidth(),
+            it->GetHeight()
         );
 
         return;

@@ -27,7 +27,12 @@ public:
 
     void SetFocus(xcb_window_t w_id);
 
-    bool Has(xcb_window_t w_id);
+    bool Contains(xcb_window_t w_id);
+
+    // Обработка событий, для которых требуется определенная информация 
+    // о окне, которой не владеет класс WindowManager
+    // TODO: подумать, возможно стоит изменить подход к обработки подобных событтий
+    void ProcessEventByWindow(xcb_window_t w_id, xcb_generic_event_t *raw_event);
 
     // TODO: в дальнейшем стоит рассмотреть алтернативные варианты
     // передачи информации о экране

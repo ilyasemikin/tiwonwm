@@ -19,6 +19,38 @@ public:
         return is_maximized;
     }
 
+    inline void SetX(int16_t x) {
+        x_ = x;
+    }
+
+    inline int16_t GetX() {
+        return x_;
+    }
+
+    inline void SetY(int16_t y) {
+        y_ = y;
+    }
+
+    inline int16_t GetY() {
+        return y_;
+    }
+
+    inline void SetWidth(uint32_t width) {
+        width_ = width;
+    }
+
+    inline uint32_t GetWidth() const {
+        return width_;
+    }
+
+    inline void SetHeight(uint32_t height) {
+        height_ = height;
+    }
+
+    inline uint32_t GetHeight() {
+        return height_;
+    }
+
     void Map();
     void Unmap();
 
