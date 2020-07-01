@@ -117,7 +117,7 @@ void Workspace::Hide() {
 }
 
 void Workspace::SetFocus(xcb_window_t w_id) {
-    if (w_id == active_window_.id) {
+    if (active_window_.exist && w_id == active_window_.id) {
         return;
     }
 
