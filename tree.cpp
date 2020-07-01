@@ -31,7 +31,9 @@ namespace TreeNodes {
         }
         return ret += " ]";
     }
-
+    
+    // TODO: добавить способы оповещения вызывающей стороны
+    // о ошибке в функции
     void Frame::AddChild(Node::ptr node, size_t pos) {
         if (pos > childs_.size()) {
             return;
@@ -44,9 +46,11 @@ namespace TreeNodes {
     void Frame::AddChildAfter(Node::ptr after_node, Node::ptr node) {
         auto it = FindChild(after_node);
 
-        // TODO: обработать случай, когда after_node не принадлежит Frame
+        if (it == childs_.end()) {
+            return;
+        }
 
-        childs_.insert(it, node);
+        childs_.insert(next(it), node);
         node->SetParent(shared_from_this());
     }
 
@@ -126,8 +130,6 @@ void Tree::Add(xcb_window_t w_id) {
     id_to_node_.insert({ new_win->GetId(), new_win });
 }
 
-// TODO: Подумать о реструктуризации кода функции
-// Возможно, не конечный вариант
 void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, Orientation orient) { 
     if (!id_to_node_.count(w_id)) {
         return;
