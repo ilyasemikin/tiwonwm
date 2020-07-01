@@ -7,7 +7,7 @@ using namespace std;
 Workspace::Workspace(xcb_connection_t *connection) :
     connection_(connection)
 {
-    active_window_ = end(windows_);
+    active_window_.exist = false;
 
     t_orient_ = Orientation::HORIZONTAL;
 
@@ -60,7 +60,7 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     }
     else {
         wins_tree_.AddNeighbour(
-            active_window_->GetId(),
+            active_window_.id,
             it->GetId(),
             t_orient_
         );
@@ -87,10 +87,10 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
     wins_tree_.Remove(it->GetId());
 
     // Если удаляемое окно последнее, то фокусируемся на предпоследнем
-    if (active_window_ == it) {
+    if (active_window_.id == it->GetId()) {
         windows_.erase(it);
 
-        active_window_ = end(windows_);
+        active_window_.exist = false;
         if (!windows_.empty()) {
             SetFocus(windows_.back().GetId());
         }
@@ -117,21 +117,24 @@ void Workspace::Hide() {
 }
 
 void Workspace::SetFocus(xcb_window_t w_id) {
-    if (w_id == active_window_->GetId()) {
+    if (w_id == active_window_.id) {
         return;
     }
 
     // Сбрасываем текущий фокус
-    if (active_window_ != end(windows_)) {
-        active_window_->Unfocus(config_.unfocused_border_color);
+    if (active_window_.exist) {
+        active_window_.exist = false;
+        FindWindow(active_window_.id)->Unfocus(config_.unfocused_border_color);
     }
 
-    active_window_ = FindWindow(w_id);
-    if (active_window_ == end(windows_)) {
+    auto it = FindWindow(w_id);
+    if (it == end(windows_)) {
         return;
     }
 
-    active_window_->Focus(config_.focused_border_color);
+    active_window_.id = w_id;
+    active_window_.exist = true;
+    FindWindow(active_window_.id)->Focus(config_.focused_border_color);
 
     xcb_flush(connection_);
 }

@@ -46,7 +46,10 @@ private:
 
     std::list<Window> windows_;
     using window_iterator = typename std::list<Window>::iterator;
-    window_iterator active_window_;
+    struct {
+        bool exist;
+        xcb_window_t id;
+    } active_window_;
 
     Orientation t_orient_;
 
