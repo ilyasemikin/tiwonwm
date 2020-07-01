@@ -1,7 +1,11 @@
 #pragma once
 
+#include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
+
 #include <cstdint>
 #include <string>
+#include <utility>
 
 enum class Orientation {
     VERTICAL,
@@ -17,6 +21,8 @@ enum class Direction {
 };
 
 uint32_t GetColor(uint8_t r, uint8_t g, uint8_t b);
+
+std::pair<bool, xcb_keycode_t> GetKeyCode(xcb_key_symbols_t *key_symb, xcb_keysym_t key);
 
 template <typename EventType>
 class XCB_SendedNotifyEvent {

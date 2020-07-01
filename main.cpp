@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <X11/keysym.h>
+
 #include "window_manager.hpp"
 #include "utils.hpp"
 
@@ -9,6 +11,14 @@ int main() {
     Config config;
     config.terminal = "xfce4-terminal";
     config.count_workspaces = 10;
+
+    config.keys.open_terminal = XK_Return;
+    config.keys.rotate_frame = XK_R;
+    config.keys.switch_tiling = XK_S;
+    config.keys.ws_change = {
+        XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9, XK_0
+    };
+
     config.ws_config.border_width = 2;
     config.ws_config.unfocused_border_color = GetColor(255, 0, 0);
     config.ws_config.focused_border_color = GetColor(0, 0, 255);

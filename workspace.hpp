@@ -19,8 +19,17 @@ public:
     void InsertWindow(xcb_window_t w_id);
     void RemoveWindow(xcb_window_t w_id);
 
-    inline void SetTilingOrient(Orientation orient) { t_orient_ = orient; }
-    inline Orientation GetTilingOrient() const { return t_orient_; }
+    inline void SetTilingOrient(Orientation orient) { 
+        t_orient_ = orient;
+    }
+    
+    inline Orientation GetTilingOrient() const { 
+        return t_orient_;
+    }
+    
+    inline void SwitchTilingOrient() {
+        t_orient_ = GetOtherOrientation(t_orient_);
+    }
 
     void Show();
     void Hide();

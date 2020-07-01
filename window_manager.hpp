@@ -52,6 +52,9 @@ private:
 
     void SetWorkspace(size_t ws_number);
 
+    void SwitchWorkspaceTiling();
+    void RotateWorkspaceFrame();
+
     std::shared_ptr<Display> display_;
 
     int screen_number_;
@@ -65,8 +68,6 @@ private:
     size_t current_ws_;
 
     // Keys
-    std::unordered_map<xcb_keycode_t, size_t> ws_change_keys_;
-    xcb_keycode_t terminal_open_key_;
-    xcb_keycode_t switch_tiling_key_;
-    xcb_keycode_t rotate_frame_key_;
+    using key_handler = std::function<void()>;
+    std::unordered_map<xcb_keycode_t, key_handler> keys_;
 };

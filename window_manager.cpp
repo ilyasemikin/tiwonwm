@@ -43,6 +43,14 @@ unique_ptr<WindowManager> WindowManager::Create(const Config &config) {
 }
 
 WindowManager::RunResult WindowManager::Run() {
+    if (config_.count_workspaces == 0) {
+        return { ResultState::ERROR, "count workspace must be >0" };
+    }
+
+    if (config_.count_workspaces > config_.keys.ws_change.size()) {
+        return { ResultState::ERROR, "not enough keys for workspace change" };
+    }
+
     auto iter = xcb_setup_roots_iterator(xcb_get_setup(connection_));
 
     display_ = make_shared<Display>();
@@ -105,56 +113,41 @@ bool WindowManager::SetUp() {
 // TODO: в данный момент обработатывается клавиши путем перехвата
 // нажатий всех комбинаций с кнопками. В дальнейшем сделать перехват
 // определенных последовательной
+// TODO: добавить проверки, а также учитывать клавиши модификаторы
 bool WindowManager::SetUpKeys() {
-    vector ws_change_keys {
-        XK_1,
-        XK_2,
-        XK_3,
-        XK_4,
-        XK_5,
-        XK_6,
-        XK_7,
-        XK_8,
-        XK_9,
-        XK_0
-    };
-
-    size_t ws_num = 0;
     auto key_symbs = xcb_key_symbols_alloc(connection_);
-
-    auto super_l_key_code = xcb_key_symbols_get_keycode(key_symbs, XK_Super_L);
 
     xcb_grab_key(
         connection_,
-        1,
+        true,
         root_window_,
         XCB_MOD_MASK_ANY,
-        *super_l_key_code,
+        GetKeyCode(key_symbs, XK_Super_L).second,
         XCB_GRAB_MODE_ASYNC,
         XCB_GRAB_MODE_ASYNC
     );
 
-    free(super_l_key_code);
-
-    for (const auto &key : ws_change_keys) {
-        auto key_code = xcb_key_symbols_get_keycode(key_symbs, key);
-
-        ws_change_keys_.insert({ *key_code, ws_num++ });
-
-        free(key_code);
+    size_t ws_num = 0;
+    for (const auto &key : config_.keys.ws_change) {        
+        keys_.insert({ GetKeyCode(key_symbs, key).second, bind(&WindowManager::SetWorkspace, this, ws_num++) });
     }
 
-    auto terminal_open_key_code = xcb_key_symbols_get_keycode(key_symbs, XK_Return);
-    terminal_open_key_ = *terminal_open_key_code;
-    free(terminal_open_key_code);
+    if (config_.terminal != "") {
+        keys_.insert({ 
+            GetKeyCode(key_symbs, XK_Return).second, 
+            bind(&WindowManager::ExecApplication, this, config_.terminal)
+        });
+    }
 
-    auto switch_tiling_key_code = xcb_key_symbols_get_keycode(key_symbs, XK_S);
-    switch_tiling_key_ = *switch_tiling_key_code;
-    free(switch_tiling_key_code);
+    keys_.insert({
+        GetKeyCode(key_symbs, XK_S).second,
+        bind(&WindowManager::SwitchWorkspaceTiling, this)
+    });
 
-    auto rotate_frame_key_code = xcb_key_symbols_get_keycode(key_symbs, XK_R);
-    rotate_frame_key_ = *rotate_frame_key_code;
-    free(rotate_frame_key_code);
+    keys_.insert({
+        GetKeyCode(key_symbs, XK_R).second,
+        bind(&WindowManager::RotateWorkspaceFrame, this)
+    });
 
     xcb_key_symbols_free(key_symbs);
 
@@ -225,20 +218,8 @@ void WindowManager::ExecApplication(const std::string &program_name) {
 void WindowManager::OnKeyPress(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_key_press_event_t *>(raw_event);
 
-    if (ws_change_keys_.count(event->detail) && (event->state & XCB_MOD_MASK_4)) {
-        SetWorkspace(ws_change_keys_[event->detail]);
-    }
-    else if (event->detail == terminal_open_key_ 
-         && (event->state & XCB_MOD_MASK_4)
-         && !config_.terminal.empty()) {
-        ExecApplication(config_.terminal);
-    }
-    else if (event->detail == switch_tiling_key_ && (event->state & XCB_MOD_MASK_4)) {
-        auto &cur_ws = workspaces_[current_ws_];
-        cur_ws.SetTilingOrient(GetOtherOrientation(cur_ws.GetTilingOrient()));
-    }
-    else if (event->detail == rotate_frame_key_ && (event->state & XCB_MOD_MASK_4)) {
-        workspaces_[current_ws_].RotateFocusFrame();
+    if (keys_.count(event->detail) && (event->state & XCB_MOD_MASK_4)) {
+        keys_[event->detail]();
     }
     else {
         // Передача комбинации в случае, если комбинацию мы не обрабатываем
@@ -351,4 +332,12 @@ void WindowManager::SetWorkspace(size_t ws_number) {
     current_ws_ = ws_number;
 
     workspaces_[current_ws_].Show();
+}
+
+void WindowManager::SwitchWorkspaceTiling() {
+    workspaces_[current_ws_].SwitchTilingOrient();
+}
+
+void WindowManager::RotateWorkspaceFrame() {
+    workspaces_[current_ws_].RotateFocusFrame();
 }
