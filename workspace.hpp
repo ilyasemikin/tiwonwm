@@ -27,6 +27,8 @@ public:
 
     void SetFocus(xcb_window_t w_id);
 
+    void RotateFocusFrame();
+
     bool Contains(xcb_window_t w_id);
 
     // Обработка событий, для которых требуется определенная информация 

@@ -54,7 +54,7 @@ namespace TreeNodes {
             orient_ = orient;
         }
 
-        inline Orientation GetTilingType() const {
+        inline Orientation GetOrientation() const {
             return orient_;
         }
 
@@ -116,6 +116,8 @@ public:
     void AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, Orientation orient);
 
     void Remove(xcb_window_t w_id);
+
+    void RotateFrameWithWindow(xcb_window_t w_id);
 
     TreeNodes::Node::const_ptr GetStructure() { return root_; }
 private:

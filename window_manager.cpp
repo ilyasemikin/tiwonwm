@@ -152,6 +152,10 @@ bool WindowManager::SetUpKeys() {
     switch_tiling_key_ = *switch_tiling_key_code;
     free(switch_tiling_key_code);
 
+    auto rotate_frame_key_code = xcb_key_symbols_get_keycode(key_symbs, XK_R);
+    rotate_frame_key_ = *rotate_frame_key_code;
+    free(rotate_frame_key_code);
+
     xcb_key_symbols_free(key_symbs);
 
     return true;
@@ -232,6 +236,9 @@ void WindowManager::OnKeyPress(xcb_generic_event_t *raw_event) {
     else if (event->detail == switch_tiling_key_ && (event->state & XCB_MOD_MASK_4)) {
         auto &cur_ws = workspaces_[current_ws_];
         cur_ws.SetTilingOrient(GetOtherOrientation(cur_ws.GetTilingOrient()));
+    }
+    else if (event->detail == rotate_frame_key_ && (event->state & XCB_MOD_MASK_4)) {
+        workspaces_[current_ws_].RotateFocusFrame();
     }
     else {
         // Передача комбинации в случае, если комбинацию мы не обрабатываем

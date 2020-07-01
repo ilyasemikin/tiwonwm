@@ -139,6 +139,16 @@ void Workspace::SetFocus(xcb_window_t w_id) {
     xcb_flush(connection_);
 }
 
+void Workspace::RotateFocusFrame() {
+    if (!active_window_.exist) {
+        return;
+    }
+
+    wins_tree_.RotateFrameWithWindow(active_window_.id);
+
+    ResizeWindows();
+}
+
 bool Workspace::Contains(xcb_window_t w_id) {
     return FindWindow(w_id) != end(windows_);
 }
@@ -230,7 +240,7 @@ void Workspace::ShowFrames(const TreeNodes::Node::const_ptr &node, int16_t x, in
 
     auto frame_node = dynamic_pointer_cast<const TreeNodes::Frame>(node);
     auto c_count = frame_node->CountChilds();
-    if (frame_node->GetTilingType() == Orientation::VERTICAL) {
+    if (frame_node->GetOrientation() == Orientation::VERTICAL) {
         height /= c_count;
 
         for (size_t i = 0; i < c_count; i++) {

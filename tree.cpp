@@ -139,7 +139,7 @@ void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, Orientation 
     auto node = id_to_node_[w_id];
     auto parent = dynamic_pointer_cast<TreeNodes::Frame>(node->GetParent());
 
-    if (parent->GetTilingType() == orient) {
+    if (parent->GetOrientation() == orient) {
         parent->AddChildAfter(node, new_win);
     }
     else {
@@ -189,4 +189,15 @@ void Tree::Remove(xcb_window_t w_id) {
     }
 
     id_to_node_.erase(w_id);
+}
+
+void Tree::RotateFrameWithWindow(xcb_window_t w_id) {
+    if (!id_to_node_.count(w_id)) {
+        return;
+    }
+
+    auto node = id_to_node_[w_id];
+    auto frame = dynamic_pointer_cast<TreeNodes::Frame>(node->GetParent());
+
+    frame->SetOrientation(GetOtherOrientation(frame->GetOrientation()));
 }
