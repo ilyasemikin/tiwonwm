@@ -219,16 +219,10 @@ void Workspace::ShowFrames(const TreeNodes::Node::const_ptr &node, int16_t x, in
         auto win_node = dynamic_pointer_cast<const TreeNodes::Window>(node);
         auto it = FindWindow(win_node->GetId());
 
-        it->SetX(x);
-        it->SetY(y);
-        it->SetWidth(width - 2 * config_.border_width);
-        it->SetHeight(height - 2 * config_.border_width);
-
         it->MoveResize(
-            it->GetX(),
-            it->GetY(),
-            it->GetWidth(),
-            it->GetHeight()
+            x, y,
+            width - 2 * config_.border_width,
+            height - 2 * config_.border_width
         );
 
         return;
