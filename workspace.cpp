@@ -163,30 +163,27 @@ void Workspace::ProcessEventByWindow(xcb_window_t w_id, xcb_generic_event_t *raw
         // Ответ на CONFIGURE_REQUEST - игнорируем запрос
         // и отправляем собственный ответ, которым задаем нужные
         // нам параметры
+        XCB_SendedNotifyEvent<xcb_configure_notify_event_t> e;
+        auto &event = e.Get();
 
-        auto raw_memory = new byte[32];
-        auto res_event = reinterpret_cast<xcb_configure_notify_event_t *>(raw_memory);
+        event.event = it->GetId();
+        event.window = it->GetId();
+        event.response_type = XCB_CONFIGURE_NOTIFY;
 
-        res_event->event = it->GetId();
-        res_event->window = it->GetId();
-        res_event->response_type = XCB_CONFIGURE_NOTIFY;
-
-        res_event->x = it->GetX();
-        res_event->y = it->GetY();
-        res_event->width = it->GetWidth();
-        res_event->height = it->GetHeight();
+        event.x = it->GetX();
+        event.y = it->GetY();
+        event.width = it->GetWidth();
+        event.height = it->GetHeight();
 
         xcb_send_event(
             connection_,
             false,
             it->GetId(),
             XCB_EVENT_MASK_STRUCTURE_NOTIFY,
-            reinterpret_cast<char *>(res_event)
+            e.GetAsCharArray()
         );
 
         xcb_flush(connection_);
-
-        delete[] raw_memory;
     }
 }
 
