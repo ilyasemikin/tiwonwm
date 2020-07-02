@@ -2,11 +2,18 @@
 
 #include <xcb/xcb.h>
 
-class Window {
+#include "frame.hpp"
+
+class Window : Frame {
 public:
     Window(xcb_connection_t *connection, xcb_window_t w_id);
 
-    // TODO: в дальнейшем подумать, нужно ли выносить идентификатор вне класса
+    inline FrameType GetType() const override {
+        return FrameType::WINDOW;
+    }
+
+    std::string ToString() const override;
+
     inline xcb_window_t GetId() const {
         return id_;
     }

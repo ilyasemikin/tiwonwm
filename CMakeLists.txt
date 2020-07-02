@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 set(
     SOURCES
+    frame.cpp
+    container.cpp
     utils.cpp
     window.cpp
     tree.cpp

@@ -1,5 +1,7 @@
 #include "window.hpp"
 
+using namespace std;
+
 Window::Window(xcb_connection_t *connection, xcb_window_t w_id) :
     connection_(connection),
     id_(w_id),
@@ -7,6 +9,10 @@ Window::Window(xcb_connection_t *connection, xcb_window_t w_id) :
     is_maximized(false)
 {
 
+}
+
+string Window::ToString() const {
+    return to_string(id_);
 }
 
 void Window::Map() {
