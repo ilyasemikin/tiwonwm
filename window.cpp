@@ -17,15 +17,11 @@ string Window::ToString() const {
     return to_string(id_);
 }
 
-#include <iostream>
-
 void Window::MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) {
     x_ = x;
     y_ = y;
     width_ = width;
     height_ = height;
-
-    cout << id_ << " " << x << " " << y << " " << width << " " << height << endl;
 
     uint32_t values[] {
         static_cast<uint32_t>(x),

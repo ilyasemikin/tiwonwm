@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-#include <iostream>
-
 #include "container.hpp"
 
 using namespace std;
@@ -65,8 +63,6 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     SetFocus(win->GetId());
 
     ShowFrames();
-
-    cout << wins_tree_.GetRoot()->ToString() << endl;
 }
 
 void Workspace::RemoveWindow(xcb_window_t w_id) {

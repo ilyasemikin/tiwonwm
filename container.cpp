@@ -11,7 +11,7 @@ Container::Container() :
 }
 
 string Container::ToString() const {
-    string ret = "[ " + to_string(orient_) + " frame: ";
+    string ret = "[ " + to_string(orient_) + " container: ";
     for (size_t i = 0; i < childs_.size(); i++) {
         if (i != 0) {
             ret += ", ";
@@ -203,9 +203,9 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
 
     if (orient_ == Orientation::VERTICAL) {
         // Пиксели, которые будут изменены у фреймах, не являющиеся node
-        auto pixels_per_win = static_cast<double>(2 * px) / (CountChilds() - 1);
+        auto pixels_per_win = (2 * px) / (CountChilds() - 1);
         for (auto child : childs_) {
-            double new_height = child->GetHeight();
+            int new_height = child->GetHeight();
             new_height += child == node ? 2 * px : -pixels_per_win;
             if (new_height >= GetHeight() || new_height <= 5) {
                 return;
@@ -252,9 +252,9 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
     }
     else {
         // Пиксели, которые будут изменены у фреймах, не являющиеся node
-        auto pixels_per_win = static_cast<double>(2 * px) / (CountChilds() - 1);
+        int pixels_per_win = (2 * px) / (CountChilds() - 1);
         for (auto child : childs_) {
-            double new_width = child->GetWidth();
+            int new_width = child->GetWidth();
             new_width += child == node ? 2 * px : -pixels_per_win;
             if (new_width >= GetWidth() || new_width <= 5) {
                 return;
