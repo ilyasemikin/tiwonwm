@@ -61,8 +61,6 @@ private:
 
     Tree wins_tree_;
 
-    std::list<Window> windows_;
-    using window_iterator = typename std::list<Window>::iterator;
     struct {
         bool exist;
         xcb_window_t id;
@@ -70,8 +68,6 @@ private:
 
     Orientation t_orient_;
 
-    window_iterator FindWindow(xcb_window_t w_id);
-
     void ResizeWindows();
-    void ShowFrames(const Frame::const_ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height);
+    void ShowFrames(Frame::ptr node, int16_t x, int16_t y, uint32_t width, uint32_t height);
 };

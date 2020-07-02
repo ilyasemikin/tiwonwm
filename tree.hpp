@@ -10,6 +10,7 @@
 #include "display.hpp"
 #include "utils.hpp"
 #include "frame.hpp"
+#include "window.hpp"
 
 // Дерево расположения элементов на экране
 // Принципы построения дерева:
@@ -19,7 +20,13 @@ class Tree {
 public:
     Tree(xcb_connection_t *connection);
 
-    inline bool Empty() const { return root_ == nullptr; }
+    inline bool Empty() const { 
+        return root_ == nullptr; 
+    }
+
+    inline bool Contains(xcb_window_t w_id) const {
+        return id_to_node_.count(w_id);
+    }
 
     void Add(xcb_window_t w_id);
     void AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, Orientation orient);
@@ -28,7 +35,17 @@ public:
 
     void RotateFrameWithWindow(xcb_window_t w_id);
 
-    Frame::const_ptr GetStructure() { return root_; }
+    std::shared_ptr<Window> GetWindow(xcb_window_t w_id);
+
+    Frame::ptr GetStructure() { return root_; }
+
+    auto begin() {
+        return id_to_node_.begin();
+    }
+
+    auto end() {
+        return id_to_node_.end();
+    }
 private:
     std::unordered_map<xcb_window_t, Frame::ptr> id_to_node_;
 

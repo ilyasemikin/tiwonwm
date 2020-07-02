@@ -102,3 +102,7 @@ void Tree::RotateFrameWithWindow(xcb_window_t w_id) {
 
     frame->SetOrientation(GetOtherOrientation(frame->GetOrientation()));
 }
+
+std::shared_ptr<Window> Tree::GetWindow(xcb_window_t w_id) {
+    return dynamic_pointer_cast<Window>(id_to_node_[w_id]);
+}

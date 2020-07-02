@@ -18,8 +18,7 @@ Workspace::Workspace(xcb_connection_t *connection) :
 }
 
 void Workspace::InsertWindow(xcb_window_t w_id) {
-    windows_.push_back({ connection_, w_id });
-    auto it = prev(end(windows_));
+    auto it = make_shared<Window>(connection_, w_id);
 
     // Устанавливаем цвет рамки окна
     xcb_change_window_attributes(
@@ -75,11 +74,11 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
 }
 
 void Workspace::RemoveWindow(xcb_window_t w_id) {
-    auto it = FindWindow(w_id);
-
-    if (it == end(windows_)) {
+    if (!Contains(w_id)) {
         return;
     }
+    
+    auto it = wins_tree_.GetWindow(w_id);
 
     xcb_change_save_set(
         connection_,
@@ -91,30 +90,29 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
 
     // Если удаляемое окно последнее, то фокусируемся на предпоследнем
     if (active_window_.id == it->GetId()) {
-        windows_.erase(it);
-
         active_window_.exist = false;
-        if (!windows_.empty()) {
-            SetFocus(windows_.back().GetId());
+        if (!wins_tree_.Empty()) {
+            // TODO: установить фокус на некотором окне
         }
-    }
-    else {
-        windows_.erase(it);
     }
 
     ResizeWindows();
 }
 
+// TODO: избавиться от кастов
 void Workspace::Show() {
-    for (auto &window : windows_) {
-        window.Map();
+    for (auto [id, frame] : wins_tree_) {
+        auto window = dynamic_pointer_cast<Window>(frame);
+        window->Map();
     }
     xcb_flush(connection_);
 }
 
+// TODO: избавиться от кастов
 void Workspace::Hide() {
-    for (auto &window : windows_) {
-        window.Unmap();
+    for (auto [id, frame] : wins_tree_) {
+        auto window = dynamic_pointer_cast<Window>(frame);
+        window->Unmap();
     }
     xcb_flush(connection_);
 }
@@ -127,17 +125,16 @@ void Workspace::SetFocus(xcb_window_t w_id) {
     // Сбрасываем текущий фокус
     if (active_window_.exist) {
         active_window_.exist = false;
-        FindWindow(active_window_.id)->Unfocus(config_.unfocused_border_color);
+        wins_tree_.GetWindow(w_id)->Unfocus(config_.unfocused_border_color);
     }
 
-    auto it = FindWindow(w_id);
-    if (it == end(windows_)) {
+    if (!Contains(w_id)) {
         return;
     }
 
     active_window_.id = w_id;
     active_window_.exist = true;
-    FindWindow(active_window_.id)->Focus(config_.focused_border_color);
+    wins_tree_.GetWindow(w_id)->Focus(config_.focused_border_color);
 
     xcb_flush(connection_);
 }
@@ -153,14 +150,15 @@ void Workspace::RotateFocusFrame() {
 }
 
 bool Workspace::Contains(xcb_window_t w_id) {
-    return FindWindow(w_id) != end(windows_);
+    return wins_tree_.Contains(w_id);
 }
 
 void Workspace::ProcessEventByWindow(xcb_window_t w_id, xcb_generic_event_t *raw_event) {
-    auto it = FindWindow(w_id);
-    if (it == end(windows_)) {
+    if (!Contains(w_id)) {
         return;
     }
+
+    auto it = wins_tree_.GetWindow(w_id);
     
     if (raw_event->response_type & XCB_CONFIGURE_REQUEST) {
         // Ответ на CONFIGURE_REQUEST - игнорируем запрос
@@ -204,12 +202,6 @@ void Workspace::SetDefaultConfig() {
     config_.focused_border_color = GetColor(0, 0, 0);
 }
 
-Workspace::window_iterator Workspace::FindWindow(xcb_window_t w_id) {
-    return find_if(begin(windows_), end(windows_), [w_id](const auto &x) {
-        return x.GetId() == w_id;
-    });
-}
-
 // FIXME: при определенном количестве окон на экране появляется
 // полоса в пару пикселей справа
 void Workspace::ResizeWindows() {
@@ -224,12 +216,11 @@ void Workspace::ResizeWindows() {
     }
 }
 
-void Workspace::ShowFrames(const Frame::const_ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
+void Workspace::ShowFrames(Frame::ptr node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
     if (node->GetType() == FrameType::WINDOW) {
-        auto win_node = dynamic_pointer_cast<const Window>(node);
-        auto it = FindWindow(win_node->GetId());
+        auto win_node = dynamic_pointer_cast<Window>(node);
 
-        it->MoveResize(
+        win_node->MoveResize(
             x, y,
             width - 2 * config_.border_width,
             height - 2 * config_.border_width
@@ -238,14 +229,14 @@ void Workspace::ShowFrames(const Frame::const_ptr &node, int16_t x, int16_t y, u
         return;
     }
 
-    auto frame_node = dynamic_pointer_cast<const Container>(node);
+    auto frame_node = dynamic_pointer_cast<Container>(node);
     auto c_count = frame_node->CountChilds();
     if (frame_node->GetOrientation() == Orientation::VERTICAL) {
         height /= c_count;
 
         for (size_t i = 0; i < c_count; i++) {
             ShowFrames(
-                frame_node->GetConstChild(i),
+                frame_node->GetChild(i),
                 x, y,
                 width, height
             );
@@ -258,7 +249,7 @@ void Workspace::ShowFrames(const Frame::const_ptr &node, int16_t x, int16_t y, u
 
         for (size_t i = 0; i < c_count; i++) {
             ShowFrames(
-                frame_node->GetConstChild(i),
+                frame_node->GetChild(i),
                 x, y,
                 width, height
             );
