@@ -9,6 +9,7 @@
 #include "configs.hpp"
 #include "display.hpp"
 #include "tree.hpp"
+#include "frame.hpp"
 #include "window.hpp"
 #include "utils.hpp"
 
@@ -72,5 +73,5 @@ private:
     window_iterator FindWindow(xcb_window_t w_id);
 
     void ResizeWindows();
-    void ShowFrames(const TreeNodes::Node::const_ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height);
+    void ShowFrames(const Frame::const_ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height);
 };

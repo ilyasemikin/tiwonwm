@@ -4,7 +4,7 @@
 
 #include "frame.hpp"
 
-class Window : Frame {
+class Window : public Frame {
 public:
     Window(xcb_connection_t *connection, xcb_window_t w_id);
 

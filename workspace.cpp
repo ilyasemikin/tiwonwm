@@ -2,10 +2,13 @@
 
 #include <algorithm>
 
+#include "container.hpp"
+
 using namespace std;
 
 Workspace::Workspace(xcb_connection_t *connection) :
-    connection_(connection)
+    connection_(connection),
+    wins_tree_(connection_)
 {
     active_window_.exist = false;
 
@@ -221,9 +224,9 @@ void Workspace::ResizeWindows() {
     }
 }
 
-void Workspace::ShowFrames(const TreeNodes::Node::const_ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
-    if (node->GetType() == TreeNodes::NodeType::WINDOW) {
-        auto win_node = dynamic_pointer_cast<const TreeNodes::Window>(node);
+void Workspace::ShowFrames(const Frame::const_ptr &node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
+    if (node->GetType() == FrameType::WINDOW) {
+        auto win_node = dynamic_pointer_cast<const Window>(node);
         auto it = FindWindow(win_node->GetId());
 
         it->MoveResize(
@@ -235,7 +238,7 @@ void Workspace::ShowFrames(const TreeNodes::Node::const_ptr &node, int16_t x, in
         return;
     }
 
-    auto frame_node = dynamic_pointer_cast<const TreeNodes::Frame>(node);
+    auto frame_node = dynamic_pointer_cast<const Container>(node);
     auto c_count = frame_node->CountChilds();
     if (frame_node->GetOrientation() == Orientation::VERTICAL) {
         height /= c_count;
