@@ -18,7 +18,7 @@
 // 2) Каждый фрейм содержит более 1 потомка. Исключение - корень, может иметь 1-го потомка
 class Tree {
 public:
-    Tree(xcb_connection_t *connection);
+    Tree();
 
     inline bool Empty() const { 
         return root_ == nullptr; 
@@ -28,8 +28,8 @@ public:
         return id_to_node_.count(w_id);
     }
 
-    void Add(xcb_window_t w_id);
-    void AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, Orientation orient);
+    void Add(std::shared_ptr<Window> window);
+    void AddNeighbour(xcb_window_t w_id, std::shared_ptr<Window> new_win, Orientation orient);
 
     void Remove(xcb_window_t w_id);
 
@@ -47,10 +47,7 @@ public:
         return id_to_node_.end();
     }
 private:
-    std::unordered_map<xcb_window_t, Frame::ptr> id_to_node_;
-
-    // FIXME: удалить по окончании введения новой структуры кода фреймов
-    xcb_connection_t *connection_;
+    std::unordered_map<xcb_window_t, std::shared_ptr<Window>> id_to_node_;
 
     Frame::ptr root_;
 };

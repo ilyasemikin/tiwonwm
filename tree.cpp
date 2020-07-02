@@ -7,36 +7,32 @@
 
 using namespace std;
 
-Tree::Tree(xcb_connection_t *connection) :
-    connection_(connection),
+Tree::Tree() :
     root_(nullptr)
 {
 
 }
 
-void Tree::Add(xcb_window_t w_id) {
-    auto new_win = make_shared<Window>(connection_, w_id);
-    
+void Tree::Add(std::shared_ptr<Window> window) {
     if (root_ == nullptr) {
         auto frame = make_shared<Container>();
-        frame->AddChild(new_win);
+        frame->AddChild(window);
         
         root_ = frame;
     }
     else {
         auto frame = dynamic_pointer_cast<Container>(root_);
-        frame->AddChild(new_win);
+        frame->AddChild(window);
     }
 
-    id_to_node_.insert({ new_win->GetId(), new_win });
+    id_to_node_.insert({ window->GetId(), window });
 }
 
-void Tree::AddNeighbour(xcb_window_t w_id, xcb_window_t new_win_id, Orientation orient) { 
+void Tree::AddNeighbour(xcb_window_t w_id, std::shared_ptr<Window> new_win, Orientation orient) { 
     if (!id_to_node_.count(w_id)) {
         return;
     }
 
-    auto new_win = make_shared<Window>(connection_, new_win_id);
     auto node = id_to_node_[w_id];
     auto parent = dynamic_pointer_cast<Container>(node->GetParent());
 

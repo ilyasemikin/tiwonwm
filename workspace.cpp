@@ -7,8 +7,7 @@
 using namespace std;
 
 Workspace::Workspace(xcb_connection_t *connection) :
-    connection_(connection),
-    wins_tree_(connection_)
+    connection_(connection)
 {
     active_window_.exist = false;
 
@@ -18,12 +17,12 @@ Workspace::Workspace(xcb_connection_t *connection) :
 }
 
 void Workspace::InsertWindow(xcb_window_t w_id) {
-    auto it = make_shared<Window>(connection_, w_id);
+    auto win = make_shared<Window>(connection_, w_id);
 
     // Устанавливаем цвет рамки окна
     xcb_change_window_attributes(
         connection_,
-        it->GetId(),
+        win->GetId(),
         XCB_CW_BORDER_PIXEL,
         &config_.focused_border_color
     );
@@ -32,7 +31,7 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     // Устанавливаем ширину рамок окна
     xcb_configure_window(
         connection_,
-        it->GetId(),
+        win->GetId(),
         XCB_CONFIG_WINDOW_BORDER_WIDTH,
         &value
     );
@@ -41,7 +40,7 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     value = XCB_EVENT_MASK_ENTER_WINDOW;
     xcb_change_window_attributes(
         connection_,
-        it->GetId(),
+        win->GetId(),
         XCB_CW_EVENT_MASK,
         &value
     );
@@ -51,24 +50,24 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     xcb_change_save_set(
         connection_,
         XCB_SET_MODE_INSERT,
-        it->GetId()
+        win->GetId()
     );
 
     // Размещаем окно
-    it->Map();
+    win->Map();
 
     if (wins_tree_.Empty()) {
-        wins_tree_.Add(it->GetId());
+        wins_tree_.Add(win);
     }
     else {
         wins_tree_.AddNeighbour(
             active_window_.id,
-            it->GetId(),
+            win,
             t_orient_
         );
     }
 
-    SetFocus(it->GetId());
+    SetFocus(win->GetId());
 
     ResizeWindows();
 }
@@ -78,7 +77,7 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
         return;
     }
     
-    auto it = wins_tree_.GetWindow(w_id);
+    auto win = wins_tree_.GetWindow(w_id);
 
     xcb_change_save_set(
         connection_,
@@ -86,13 +85,14 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
         w_id
     );
 
-    wins_tree_.Remove(it->GetId());
+    wins_tree_.Remove(win->GetId());
 
     // Если удаляемое окно последнее, то фокусируемся на предпоследнем
-    if (active_window_.id == it->GetId()) {
+    if (active_window_.id == win->GetId()) {
         active_window_.exist = false;
         if (!wins_tree_.Empty()) {
             // TODO: установить фокус на некотором окне
+            SetFocus(wins_tree_.begin()->first);
         }
     }
 
@@ -101,8 +101,7 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
 
 // TODO: избавиться от кастов
 void Workspace::Show() {
-    for (auto [id, frame] : wins_tree_) {
-        auto window = dynamic_pointer_cast<Window>(frame);
+    for (auto [id, window] : wins_tree_) {
         window->Map();
     }
     xcb_flush(connection_);
@@ -110,8 +109,7 @@ void Workspace::Show() {
 
 // TODO: избавиться от кастов
 void Workspace::Hide() {
-    for (auto [id, frame] : wins_tree_) {
-        auto window = dynamic_pointer_cast<Window>(frame);
+    for (auto [id, window] : wins_tree_) {
         window->Unmap();
     }
     xcb_flush(connection_);
@@ -125,7 +123,7 @@ void Workspace::SetFocus(xcb_window_t w_id) {
     // Сбрасываем текущий фокус
     if (active_window_.exist) {
         active_window_.exist = false;
-        wins_tree_.GetWindow(w_id)->Unfocus(config_.unfocused_border_color);
+        wins_tree_.GetWindow(active_window_.id)->Unfocus(config_.unfocused_border_color);
     }
 
     if (!Contains(w_id)) {
