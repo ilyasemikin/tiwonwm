@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <iostream>
+
 #include "container.hpp"
 
 using namespace std;
@@ -27,17 +29,10 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
         &config_.focused_border_color
     );
 
-    uint32_t value = static_cast<uint32_t>(config_.border_width);
-    // Устанавливаем ширину рамок окна
-    xcb_configure_window(
-        connection_,
-        win->GetId(),
-        XCB_CONFIG_WINDOW_BORDER_WIDTH,
-        &value
-    );
+    win->SetBorderWidth(config_.border_width);
 
     // Подписываемся на события окна
-    value = XCB_EVENT_MASK_ENTER_WINDOW;
+    uint32_t value = XCB_EVENT_MASK_ENTER_WINDOW;
     xcb_change_window_attributes(
         connection_,
         win->GetId(),
@@ -69,7 +64,9 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
 
     SetFocus(win->GetId());
 
-    ResizeWindows();
+    ShowFrames();
+
+    cout << wins_tree_.GetRoot()->ToString() << endl;
 }
 
 void Workspace::RemoveWindow(xcb_window_t w_id) {
@@ -91,15 +88,14 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
     if (active_window_.id == win->GetId()) {
         active_window_.exist = false;
         if (!wins_tree_.Empty()) {
-            // TODO: установить фокус на некотором окне
+            // TODO: установить фокус на некотором окне осмысленно, а не случайно
             SetFocus(wins_tree_.begin()->first);
         }
     }
 
-    ResizeWindows();
+    ShowFrames();
 }
 
-// TODO: избавиться от кастов
 void Workspace::Show() {
     for (auto [id, window] : wins_tree_) {
         window->Map();
@@ -107,7 +103,6 @@ void Workspace::Show() {
     xcb_flush(connection_);
 }
 
-// TODO: избавиться от кастов
 void Workspace::Hide() {
     for (auto [id, window] : wins_tree_) {
         window->Unmap();
@@ -144,7 +139,40 @@ void Workspace::RotateFocusFrame() {
 
     wins_tree_.RotateFrameWithWindow(active_window_.id);
 
-    ResizeWindows();
+    ShowFrames();
+}
+
+void Workspace::ResizeWindow(Orientation orient, int16_t px) {
+    if (!active_window_.exist) {
+        return;
+    }
+
+    auto win = wins_tree_.GetWindow(active_window_.id);
+    auto parent = wins_tree_.GetContainerWithWindow(active_window_.id);
+    if (parent->GetOrientation() != orient) {
+        // Изменение размера окна в рамках фрейма
+        parent->ResizeChild(win, px);
+    }
+    else {
+        // Изменение размера фрейма с активным окном
+        // Соответственно находим первый фрейм с типом тайлинга, отличный от
+        // того, в котором содержится активное окно
+        auto node = parent;
+
+        while (parent != nullptr && parent->GetOrientation() == orient) {
+            node = parent;
+
+            parent = dynamic_pointer_cast<Container>(parent->GetParent());
+        }
+
+        if (parent == nullptr) {
+            return;
+        }
+
+        parent->ResizeChild(node, px);
+    }
+
+    xcb_flush(connection_);
 }
 
 bool Workspace::Contains(xcb_window_t w_id) {
@@ -202,10 +230,10 @@ void Workspace::SetDefaultConfig() {
 
 // FIXME: при определенном количестве окон на экране появляется
 // полоса в пару пикселей справа
-void Workspace::ResizeWindows() {
+void Workspace::ShowFrames() {
     if (!wins_tree_.Empty()) {
-        ShowFrames(
-            wins_tree_.GetStructure(),
+        ShowFrame(
+            wins_tree_.GetRoot(),
             0, 0,
             display_->width, display_->height
         );
@@ -214,15 +242,11 @@ void Workspace::ResizeWindows() {
     }
 }
 
-void Workspace::ShowFrames(Frame::ptr node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
+void Workspace::ShowFrame(Frame::ptr node, int16_t x, int16_t y, uint32_t width, uint32_t height) {
     if (node->GetType() == FrameType::WINDOW) {
         auto win_node = dynamic_pointer_cast<Window>(node);
 
-        win_node->MoveResize(
-            x, y,
-            width - 2 * config_.border_width,
-            height - 2 * config_.border_width
-        );
+        win_node->MoveResize(x, y, width, height);
 
         return;
     }
@@ -233,7 +257,7 @@ void Workspace::ShowFrames(Frame::ptr node, int16_t x, int16_t y, uint32_t width
         height /= c_count;
 
         for (size_t i = 0; i < c_count; i++) {
-            ShowFrames(
+            ShowFrame(
                 frame_node->GetChild(i),
                 x, y,
                 width, height
@@ -246,7 +270,7 @@ void Workspace::ShowFrames(Frame::ptr node, int16_t x, int16_t y, uint32_t width
         width /= c_count;
 
         for (size_t i = 0; i < c_count; i++) {
-            ShowFrames(
+            ShowFrame(
                 frame_node->GetChild(i),
                 x, y,
                 width, height

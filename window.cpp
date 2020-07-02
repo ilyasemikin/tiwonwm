@@ -1,5 +1,7 @@
 #include "window.hpp"
 
+#include "utils.hpp"
+
 using namespace std;
 
 Window::Window(xcb_connection_t *connection, xcb_window_t w_id) :
@@ -13,6 +15,48 @@ Window::Window(xcb_connection_t *connection, xcb_window_t w_id) :
 
 string Window::ToString() const {
     return to_string(id_);
+}
+
+#include <iostream>
+
+void Window::MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) {
+    x_ = x;
+    y_ = y;
+    width_ = width;
+    height_ = height;
+
+    cout << id_ << " " << x << " " << y << " " << width << " " << height << endl;
+
+    uint32_t values[] {
+        static_cast<uint32_t>(x),
+        static_cast<uint32_t>(y),
+        static_cast<uint32_t>(width - 2 * border_width_),
+        static_cast<uint32_t>(height - 2 * border_width_)
+    };
+
+    xcb_configure_window(
+        connection_,
+        id_,
+        XCB_CONFIG_WINDOW_X
+      | XCB_CONFIG_WINDOW_Y
+      | XCB_CONFIG_WINDOW_WIDTH
+      | XCB_CONFIG_WINDOW_HEIGHT,
+        values
+    );
+
+    xcb_flush(connection_);
+}
+
+void Window::SetBorderWidth(uint16_t border_width) {
+    border_width_ = border_width;
+    
+    auto value = static_cast<uint32_t>(border_width_);
+    xcb_configure_window(
+        connection_,
+        id_,
+        XCB_CONFIG_WINDOW_BORDER_WIDTH,
+        &value
+    );
 }
 
 void Window::Map() {
@@ -52,29 +96,5 @@ void Window::Unfocus(uint32_t color) {
         id_,
         XCB_CW_BORDER_PIXEL,
         &color
-    );
-}
-
-void Window::MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) {
-    x_ = x;
-    y_ = y;
-    width_ = width;
-    height_ = height;
-
-    uint32_t values[] {
-        static_cast<uint32_t>(x),
-        static_cast<uint32_t>(y),
-        static_cast<uint32_t>(width),
-        static_cast<uint32_t>(height)
-    };
-
-    xcb_configure_window(
-        connection_,
-        id_,
-        XCB_CONFIG_WINDOW_X
-      | XCB_CONFIG_WINDOW_Y
-      | XCB_CONFIG_WINDOW_WIDTH
-      | XCB_CONFIG_WINDOW_HEIGHT,
-        values
     );
 }

@@ -10,11 +10,15 @@
 #include "display.hpp"
 #include "utils.hpp"
 #include "frame.hpp"
+#include "container.hpp"
 #include "window.hpp"
+
+// TODO: в данный момент существует возможность изменить структуру дерева из вне, подумать
+// над утсранением проблемы
 
 // Дерево расположения элементов на экране
 // Принципы построения дерева:
-// 1) Листями могут быть только окна
+// 1) Листьями могут быть только окна
 // 2) Каждый фрейм содержит более 1 потомка. Исключение - корень, может иметь 1-го потомка
 class Tree {
 public:
@@ -37,7 +41,13 @@ public:
 
     std::shared_ptr<Window> GetWindow(xcb_window_t w_id);
 
-    Frame::ptr GetStructure() { return root_; }
+    // Проблемный момент - возвращаем корень, который можно модифицировать
+    // TODO: попробовать решить проблему
+    Frame::ptr GetRoot() { 
+        return root_;
+    }
+
+    std::shared_ptr<Container> GetContainerWithWindow(xcb_window_t w_id);
 
     auto begin() {
         return id_to_node_.begin();

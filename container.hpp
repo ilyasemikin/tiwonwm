@@ -16,6 +16,13 @@ public:
 
     std::string ToString() const override;
 
+    int16_t GetX() const override;
+    int16_t GetY() const override;
+    uint16_t GetWidth() const override;
+    uint16_t GetHeight() const override;
+
+    void MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) override;
+
     inline void SetOrientation(Orientation orient) {
         orient_ = orient;
     }
@@ -43,6 +50,8 @@ public:
     void ReplaceChild(size_t pos, Frame::ptr new_node);
     void ReplaceChild(Frame::ptr node, Frame::ptr new_node);
     bool ContainsChild(Frame::ptr node) const;
+
+    void ResizeChild(Frame::ptr node, int16_t px);
 private:
     std::vector<Frame::ptr> childs_;
     Orientation orient_;

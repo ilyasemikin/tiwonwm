@@ -14,6 +14,24 @@ public:
 
     std::string ToString() const override;
 
+    inline int16_t GetX() const override {
+        return x_;
+    }
+
+    int16_t GetY() const override {
+        return y_;
+    }
+    
+    uint16_t GetWidth() const override {
+        return width_;
+    }
+
+    uint16_t GetHeight() const override {
+        return height_;
+    }
+
+    void MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) override;
+
     inline xcb_window_t GetId() const {
         return id_;
     }
@@ -26,29 +44,13 @@ public:
         return is_maximized;
     }
 
-    inline int16_t GetX() {
-        return x_;
-    }
-
-    inline int16_t GetY() {
-        return y_;
-    }
-
-    inline uint32_t GetWidth() const {
-        return width_;
-    }
-
-    inline uint32_t GetHeight() {
-        return height_;
-    }
+    void SetBorderWidth(uint16_t border_width);
 
     void Map();
     void Unmap();
 
     void Focus(uint32_t color);
     void Unfocus(uint32_t color);
-
-    void MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height);
 private:
     xcb_connection_t *connection_;
 
@@ -58,6 +60,8 @@ private:
     int16_t y_;
     uint16_t width_;
     uint16_t height_;
+
+    uint16_t border_width_;
 
     bool in_focus;
     bool is_maximized;

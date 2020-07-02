@@ -11,10 +11,15 @@ int main() {
     Config config;
     config.terminal = "xfce4-terminal";
     config.count_workspaces = 10;
+    config.resize_px = 10;
 
     config.keys.open_terminal = XK_Return;
     config.keys.rotate_frame = XK_R;
     config.keys.switch_tiling = XK_S;
+    config.keys.left = XK_Left;
+    config.keys.right = XK_Right;
+    config.keys.up = XK_Up;
+    config.keys.down = XK_Down;
     config.keys.ws_change = {
         XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9, XK_0
     };

@@ -17,11 +17,16 @@ struct KeysConfig {
     xcb_keysym_t open_terminal;
     xcb_keysym_t switch_tiling;
     xcb_keysym_t rotate_frame;
+    xcb_keysym_t left;
+    xcb_keysym_t right;
+    xcb_keysym_t up;
+    xcb_keysym_t down;
 };
 
 struct Config {
     size_t count_workspaces;
     std::string terminal;
+    uint16_t resize_px;
     KeysConfig keys;
     WorkspaceConfig ws_config;
 };

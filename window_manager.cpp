@@ -134,19 +134,39 @@ bool WindowManager::SetUpKeys() {
 
     if (config_.terminal != "") {
         keys_.insert({ 
-            GetKeyCode(key_symbs, XK_Return).second, 
+            GetKeyCode(key_symbs, config_.keys.open_terminal).second, 
             bind(&WindowManager::ExecApplication, this, config_.terminal)
         });
     }
 
     keys_.insert({
-        GetKeyCode(key_symbs, XK_S).second,
+        GetKeyCode(key_symbs, config_.keys.switch_tiling).second,
         bind(&WindowManager::SwitchWorkspaceTiling, this)
     });
 
     keys_.insert({
-        GetKeyCode(key_symbs, XK_R).second,
+        GetKeyCode(key_symbs, config_.keys.rotate_frame).second,
         bind(&WindowManager::RotateWorkspaceFrame, this)
+    });
+
+    keys_.insert({
+        GetKeyCode(key_symbs, config_.keys.left).second,
+        bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::VERTICAL, -config_.resize_px)
+    });
+
+    keys_.insert({
+        GetKeyCode(key_symbs, config_.keys.right).second,
+        bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::VERTICAL, config_.resize_px)
+    });
+
+    keys_.insert({
+        GetKeyCode(key_symbs, config_.keys.up).second,
+        bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::HORIZONTAL, config_.resize_px)
+    });
+    
+    keys_.insert({
+        GetKeyCode(key_symbs, config_.keys.down).second,
+        bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::HORIZONTAL, -config_.resize_px)
     });
 
     xcb_key_symbols_free(key_symbs);
@@ -340,4 +360,8 @@ void WindowManager::SwitchWorkspaceTiling() {
 
 void WindowManager::RotateWorkspaceFrame() {
     workspaces_[current_ws_].RotateFocusFrame();
+}
+
+void WindowManager::ResizeWorkspaceWindow(Orientation orient, uint16_t px) {
+    workspaces_[current_ws_].ResizeWindow(orient, px);
 }

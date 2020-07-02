@@ -39,6 +39,8 @@ public:
 
     void RotateFocusFrame();
 
+    void ResizeWindow(Orientation orient, int16_t px);
+
     bool Contains(xcb_window_t w_id);
 
     // Обработка событий, для которых требуется определенная информация 
@@ -68,6 +70,6 @@ private:
 
     Orientation t_orient_;
 
-    void ResizeWindows();
-    void ShowFrames(Frame::ptr node, int16_t x, int16_t y, uint32_t width, uint32_t height);
+    void ShowFrames();
+    void ShowFrame(Frame::ptr node, int16_t x, int16_t y, uint32_t width, uint32_t height);
 };

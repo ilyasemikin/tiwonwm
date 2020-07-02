@@ -9,7 +9,6 @@ enum class FrameType {
 
 class Frame : public std::enable_shared_from_this<Frame> {
 public:
-    Frame();
     virtual ~Frame();
 
     using ptr = std::shared_ptr<Frame>;
@@ -19,6 +18,13 @@ public:
 
     virtual std::string ToString() const = 0;
 
+    virtual int16_t GetX() const = 0;
+    virtual int16_t GetY() const = 0;
+    virtual uint16_t GetWidth() const = 0;
+    virtual uint16_t GetHeight() const = 0;
+
+    virtual void MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) = 0;
+
     inline void SetParent(ptr node) {
         parent_ = node;
     }
@@ -26,6 +32,8 @@ public:
     inline ptr GetParent() {
         return parent_;
     }
+protected:
+    Frame();
 private:
     ptr parent_;
 };

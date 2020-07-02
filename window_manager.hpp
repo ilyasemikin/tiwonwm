@@ -54,6 +54,7 @@ private:
 
     void SwitchWorkspaceTiling();
     void RotateWorkspaceFrame();
+    void ResizeWorkspaceWindow(Orientation orient, uint16_t px);
 
     std::shared_ptr<Display> display_;
 
