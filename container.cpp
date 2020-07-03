@@ -205,9 +205,9 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
 
     const int min_size = 20;
 
+    // Пиксели, которые будут изменены у фреймах, не являющиеся node
+    auto pixels_per_win = (2 * px) / static_cast<int>(CountChilds() - 1);
     if (orient_ == Orientation::VERTICAL) {
-        // Пиксели, которые будут изменены у фреймах, не являющиеся node
-        auto pixels_per_win =  (2 * px) / static_cast<int>(CountChilds() - 1);
         for (auto child : childs_) {
             int new_height = child->GetHeight();
             new_height += child == node ? 2 * px : -pixels_per_win;
@@ -215,46 +215,8 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
                 return;
             }
         }
-
-        auto x = GetX();
-        auto y = GetY();
-        for (auto child : childs_) {
-            if (child == node) {
-                node->MoveResize(
-                    x,
-                    y,
-                    node->GetWidth(),
-                    static_cast<uint16_t>(node->GetHeight() + 2 * px)
-                );
-            }
-            else {
-                child->MoveResize(
-                    x,
-                    y,
-                    child->GetWidth(),
-                    static_cast<uint16_t>(child->GetHeight() - pixels_per_win)
-                );
-            }
-
-            y += child->GetHeight();
-        }
-
-        auto c_height = GetHeight();
-        // Размер фрейма увеличился после вычислений
-        // Для решения данной пробелмы изменяем размер последнего фрейма
-        if (c_height != r_height) {
-            auto diff = r_height - static_cast<int>(c_height);
-
-            auto node = childs_.back();
-            node->Resize(
-                node->GetWidth(),
-                node->GetHeight() + diff
-            );
-        }
     }
     else {
-        // Пиксели, которые будут изменены у фреймах, не являющиеся node
-        auto pixels_per_win = (2 * px) / static_cast<int>(CountChilds() - 1);
         for (auto child : childs_) {
             int new_width = child->GetWidth();
             new_width += child == node ? 2 * px : -pixels_per_win;
@@ -262,42 +224,40 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
                 return;
             }
         }
+    }
 
-        auto x = GetX();
-        auto y = GetY();
-        for (auto child : childs_) {
-            if (child == node) {
-                node->MoveResize(
-                    x,
-                    y,
-                    static_cast<uint16_t>(node->GetWidth() + 2 * px),
-                    node->GetHeight()
-                );
-            }
-            else {
-                child->MoveResize(
-                    x,
-                    y,
-                    static_cast<uint16_t>(child->GetWidth() - pixels_per_win),
-                    node->GetHeight()
-                );
-            }
+    auto x = GetX();
+    auto y = GetY();
+    for (auto child : childs_) {
+        int c_px = (child == node) ? 2 * px : -pixels_per_win; 
 
-            x += child->GetWidth();
+        auto win_width = child->GetWidth();
+        auto win_height = child->GetHeight();
+        if (orient_ == Orientation::VERTICAL) {
+            win_height += c_px;
         }
-        
-        auto c_width = GetWidth();
-        // Размер фрейма увеличился после вычислений
-        // Для решения данной пробелмы изменяем размер последнего фрейма
-        if (c_width != r_width) {
-            auto diff = r_width - static_cast<int>(c_width);
-
-            auto node = childs_.back();
-            node->Resize(
-                node->GetWidth() + diff,
-                node->GetHeight()
-            );
+        else {
+            win_width += c_px;
         }
+
+        child->MoveResize(x, y, win_width, win_height);
+
+        if (orient_ == Orientation::VERTICAL) {
+            y += win_height;
+        }
+        else {
+            x += win_width;
+        }
+    }
+
+    auto w_diff = r_width - static_cast<int>(GetWidth());
+    auto h_diff = r_height - static_cast<int>(GetHeight());    
+    if (w_diff || h_diff) {
+        auto node = childs_.back();
+        node->Resize(
+            node->GetWidth() + w_diff,
+            node->GetHeight() + h_diff
+        );
     }
 }
 
