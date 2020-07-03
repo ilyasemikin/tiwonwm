@@ -23,6 +23,8 @@ public:
     virtual uint16_t GetWidth() const = 0;
     virtual uint16_t GetHeight() const = 0;
 
+    virtual void Move(int16_t x, int16_t y) = 0;
+    virtual void Resize(uint16_t width, uint16_t height) = 0;
     virtual void MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) = 0;
 
     inline void SetParent(ptr node) {

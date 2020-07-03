@@ -186,7 +186,7 @@ void WindowManager::EventLoop() {
     };
 
     while (true) {
-        auto event = xcb_poll_for_event(connection_);
+        auto event = xcb_wait_for_event(connection_);
 
         if (event == nullptr) {
             continue;

@@ -17,30 +17,53 @@ string Window::ToString() const {
     return to_string(id_);
 }
 
-void Window::MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) {
+void Window::Move(int16_t x, int16_t y) {
+    if (x_ == x && y_ == y) {
+        return;
+    }
+
     x_ = x;
     y_ = y;
-    width_ = width;
-    height_ = height;
 
     uint32_t values[] {
-        static_cast<uint32_t>(x),
-        static_cast<uint32_t>(y),
-        static_cast<uint32_t>(width - 2 * border_width_),
-        static_cast<uint32_t>(height - 2 * border_width_)
+        static_cast<uint32_t>(x_),
+        static_cast<uint32_t>(y_)
     };
 
     xcb_configure_window(
         connection_,
         id_,
         XCB_CONFIG_WINDOW_X
-      | XCB_CONFIG_WINDOW_Y
-      | XCB_CONFIG_WINDOW_WIDTH
+      | XCB_CONFIG_WINDOW_Y,
+        values
+    );
+}
+
+void Window::Resize(uint16_t width, uint16_t height) {
+    if (width_ == width && height_ == height) {
+        return;
+    }
+
+    width_ = width;
+    height_ = height;
+
+    uint32_t values[] {
+        static_cast<uint32_t>(width_ - 2 * border_width_),
+        static_cast<uint32_t>(height_ - 2 * border_width_)
+    };
+
+    xcb_configure_window(
+        connection_,
+        id_,
+        XCB_CONFIG_WINDOW_WIDTH
       | XCB_CONFIG_WINDOW_HEIGHT,
         values
     );
+}
 
-    xcb_flush(connection_);
+void Window::MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) {
+    Resize(width, height);
+    Move(x, y);
 }
 
 void Window::SetBorderWidth(uint16_t border_width) {
