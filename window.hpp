@@ -30,6 +30,8 @@ public:
         return height_;
     }
 
+    bool IsCorrectSize(uint16_t width, uint16_t height) const override;
+
     void Move(int16_t x, int16_t y) override;
     void Resize(uint16_t width, uint16_t height) override;
     void MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) override;

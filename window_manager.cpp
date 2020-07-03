@@ -193,14 +193,13 @@ void WindowManager::EventLoop() {
         }
 
         auto event_type = event->response_type & (~0x80);
-        cout << "-> event " << setw(3) << event_type 
-             << setw(20) << xcb_event_get_label(event_type)
-             << ": ";
-
         if (event_type == 0) {
             free(event);
             continue;
         }
+        cout << "-> event " << setw(3) << event_type 
+             << setw(20) << xcb_event_get_label(event_type)
+             << ": ";
 
         auto finded = events.find(event_type);
         if (finded != events.end()) {

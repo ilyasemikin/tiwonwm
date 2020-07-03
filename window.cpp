@@ -1,5 +1,6 @@
 #include "window.hpp"
 
+#include "container.hpp"
 #include "utils.hpp"
 
 using namespace std;
@@ -15,6 +16,10 @@ Window::Window(xcb_connection_t *connection, xcb_window_t w_id) :
 
 string Window::ToString() const {
     return to_string(id_);
+}
+
+bool Window::IsCorrectSize(uint16_t width, uint16_t height) const {
+    return width >= 20 && height >= 20;
 }
 
 void Window::Move(int16_t x, int16_t y) {
