@@ -199,6 +199,10 @@ bool Container::ContainsChild(Frame::ptr node) const {
 
 // TODO: требуется рефакторинг
 void Container::ResizeChild(Frame::ptr node, int16_t px) {
+    if (CountChilds() < 2) {
+        return;
+    }
+
     // Для выравнивания и компенсации погрешности сохраняем размеры фрейма
     auto r_width = GetWidth();
     auto r_height = GetHeight();
