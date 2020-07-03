@@ -43,7 +43,7 @@ public:
         return childs_[pos];
     }
 
-    inline Frame::const_ptr GetConstChild(size_t pos) const {
+    inline Frame::const_ptr GetChild(size_t pos) const {
         return childs_[pos];
     }
 

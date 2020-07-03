@@ -88,7 +88,7 @@ bool Container::IsCorrectSize(uint16_t width, uint16_t height) const {
         for (auto child : childs_) {
             auto h = static_cast<uint16_t>(child->GetHeight() * mult);
             if (child == last) {
-                h = width - res_size;
+                h = height - res_size;
             }
             
             res_size += h;
