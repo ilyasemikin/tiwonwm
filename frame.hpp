@@ -34,14 +34,14 @@ public:
     }
 
     inline ptr GetParent() {
-        return parent_;
+        return parent_.lock();
     }
 
     inline const_ptr GetParent() const {
-        return parent_;
+        return parent_.lock();
     }
 protected:
     Frame();
 private:
-    ptr parent_;
+    std::weak_ptr<Frame> parent_;
 };

@@ -32,7 +32,7 @@ public:
         return id_to_node_.count(w_id);
     }
 
-    void Add(std::shared_ptr<Window> window);
+    void SetRoot(Frame::ptr frame);
     void AddNeighbour(xcb_window_t w_id, std::shared_ptr<Window> new_win, Orientation orient);
 
     void Remove(xcb_window_t w_id);
@@ -60,4 +60,6 @@ private:
     std::unordered_map<xcb_window_t, std::shared_ptr<Window>> id_to_node_;
 
     Frame::ptr root_;
+
+    void UpdateWindows(Frame::ptr node);
 };

@@ -8,6 +8,10 @@ using namespace std;
 Window::Window(xcb_connection_t *connection, xcb_window_t w_id) :
     connection_(connection),
     id_(w_id),
+    x_(0),
+    y_(0),
+    width_(0),
+    height_(0),
     in_focus(false),
     is_maximized(false)
 {

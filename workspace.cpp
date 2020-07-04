@@ -50,7 +50,7 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     win->Map();
 
     if (wins_tree_.Empty()) {
-        wins_tree_.Add(win);
+        wins_tree_.SetRoot(win);
     }
     else {
         wins_tree_.AddNeighbour(

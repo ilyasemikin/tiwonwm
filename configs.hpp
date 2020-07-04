@@ -21,6 +21,7 @@ struct KeysConfig {
     xcb_keysym_t right;
     xcb_keysym_t up;
     xcb_keysym_t down;
+    xcb_keysym_t exit;
 };
 
 struct Config {

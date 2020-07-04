@@ -61,4 +61,5 @@ private:
     Orientation orient_;
 
     std::vector<Frame::ptr>::iterator FindChild(Frame::ptr node);
+    std::vector<Frame::ptr>::const_iterator FindChild(Frame::ptr node) const;
 };

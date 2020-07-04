@@ -184,6 +184,8 @@ void Container::AddChild(Frame::ptr node, size_t pos) {
         return;
     }
 
+    
+
     childs_.insert(childs_.begin() + pos, node);
     node->SetParent(shared_from_this());
 }
@@ -234,7 +236,7 @@ void Container::ReplaceChild(Frame::ptr node, Frame::ptr new_node) {
 }
 
 bool Container::ContainsChild(Frame::ptr node) const {
-    return find(begin(childs_), end(childs_), node) != end(childs_);
+    return FindChild(node) == end(childs_);
 }
 
 // TODO: требуется рефакторинг
@@ -304,5 +306,9 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
 }
 
 vector<Frame::ptr>::iterator Container::FindChild(Frame::ptr node) {
+    return find(begin(childs_), end(childs_), node);
+}
+
+std::vector<Frame::ptr>::const_iterator Container::FindChild(Frame::ptr node) const {
     return find(begin(childs_), end(childs_), node);
 }

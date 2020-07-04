@@ -10,19 +10,23 @@ Tree::Tree() :
 
 }
 
-void Tree::Add(std::shared_ptr<Window> window) {
-    if (root_ == nullptr) {
-        auto frame = make_shared<Container>();
-        frame->AddChild(window);
+#include <iostream>
+
+void Tree::SetRoot(Frame::ptr frame) {
+    id_to_node_.clear();
+
+    if (frame->GetType() == FrameType::WINDOW) {
+        auto win = frame;
+        auto parent = make_shared<Container>();
+        parent->SetOrientation(Orientation::HORIZONTAL);
+        parent->AddChild(win);
         
-        root_ = frame;
-    }
-    else {
-        auto frame = dynamic_pointer_cast<Container>(root_);
-        frame->AddChild(window);
+        frame = parent;
     }
 
-    id_to_node_.insert({ window->GetId(), window });
+    root_ = frame;
+
+    UpdateWindows(root_);
 }
 
 void Tree::AddNeighbour(xcb_window_t w_id, std::shared_ptr<Window> new_win, Orientation orient) { 
@@ -106,4 +110,17 @@ shared_ptr<Container> Tree::GetContainerWithWindow(xcb_window_t w_id) {
     }
 
     return dynamic_pointer_cast<Container>(id_to_node_[w_id]->GetParent());
+}
+
+void Tree::UpdateWindows(Frame::ptr node) {
+    if (node->GetType() == FrameType::WINDOW) {
+        auto win_node = dynamic_pointer_cast<Window>(node);
+        id_to_node_.insert({ win_node->GetId(), win_node });
+        return;
+    }
+
+    auto container = dynamic_pointer_cast<Container>(node);
+    for (size_t i = 0; i < container->CountChilds(); i++) {
+        UpdateWindows(container->GetChild(i));
+    }
 }

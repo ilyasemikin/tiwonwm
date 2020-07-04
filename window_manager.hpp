@@ -56,6 +56,10 @@ private:
     void RotateWorkspaceFrame();
     void ResizeWorkspaceWindow(Orientation orient, uint16_t px);
 
+    void Exit();
+
+    bool exit_;
+
     std::shared_ptr<Display> display_;
 
     int screen_number_;

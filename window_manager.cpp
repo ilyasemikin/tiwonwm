@@ -16,6 +16,7 @@
 using namespace std;
 
 WindowManager::WindowManager(xcb_connection_t *conn, int scr_num, const Config &config) : 
+    exit_(false),
     screen_number_(scr_num),
     connection_(conn),
     config_(config),
@@ -169,6 +170,11 @@ bool WindowManager::SetUpKeys() {
         bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::HORIZONTAL, -config_.resize_px)
     });
 
+    keys_.insert({
+        GetKeyCode(key_symbs, config_.keys.exit).second,
+        bind(&WindowManager::Exit, this)
+    });
+
     xcb_key_symbols_free(key_symbs);
 
     return true;
@@ -212,6 +218,10 @@ void WindowManager::EventLoop() {
         }
 
         free(event);
+
+        if (exit_) {
+            break;
+        }
     }
 }
 
@@ -368,4 +378,8 @@ void WindowManager::RotateWorkspaceFrame() {
 
 void WindowManager::ResizeWorkspaceWindow(Orientation orient, uint16_t px) {
     workspaces_[current_ws_].ResizeWindow(orient, px);
+}
+
+void WindowManager::Exit() {
+    exit_ = true;
 }

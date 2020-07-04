@@ -23,6 +23,7 @@ int main() {
     config.keys.ws_change = {
         XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9, XK_0
     };
+    config.keys.exit = XK_Q;
 
     config.ws_config.border_width = 2;
     config.ws_config.unfocused_border_color = GetColor(255, 0, 0);
