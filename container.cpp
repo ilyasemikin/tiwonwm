@@ -1,6 +1,7 @@
 #include "container.hpp"
 
 #include <algorithm>
+#include <functional>
 
 using namespace std;
 
@@ -62,41 +63,23 @@ uint16_t Container::GetHeight() const {
 }
 
 bool Container::IsCorrectSize(uint16_t width, uint16_t height) const {
-    // Коэффицент уменьшения/увеличения окна
-    double mult = 0;
+    uint16_t c_size = orient_ == Orientation::HORIZONTAL ? width : height;
 
     uint16_t res_size = 0;
 
     auto last = childs_.back();
-    if (orient_ == Orientation::HORIZONTAL) {
-        mult = width / static_cast<double>(GetWidth());
-        for (auto child : childs_) {
-            auto w = static_cast<uint16_t>(child->GetWidth() * mult);
-            if (child == last) {
-                w = width - res_size;
-            }
-            
-            res_size += w;
-
-            if (!child->IsCorrectSize(w, height)) {
-                return false;
-            }
+    auto mult = static_cast<double>(c_size) / GetReqDimension(width, height);
+    for (auto child : childs_) {
+        auto size = static_cast<uint16_t>(GetChildSize(child) * mult);
+        if (child == last) {
+            size = c_size - res_size;
         }
-    }
-    else {
-        mult = height / static_cast<double>(GetHeight());
-        for (auto child : childs_) {
-            auto h = static_cast<uint16_t>(child->GetHeight() * mult);
-            if (child == last) {
-                h = height - res_size;
-            }
-            
-            res_size += h;
+        res_size += size;
 
-            if (!child->IsCorrectSize(width, h)) {
-                return false;
-            }
-        }
+        if ((orient_ == Orientation::HORIZONTAL && !child->IsCorrectSize(size, height))
+         || (orient_ == Orientation::VERTICAL && !child->IsCorrectSize(width, size))) {
+            return false;
+         }
     }
 
     return true;
@@ -212,22 +195,12 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
 
     // Пиксели, которые будут изменены у фреймах, не являющиеся node
     auto pixels_per_win = (2 * px) / static_cast<int>(CountChilds() - 1);
-    if (orient_ == Orientation::VERTICAL) {
-        for (auto child : childs_) {
-            int new_height = child->GetHeight();
-            new_height += child == node ? 2 * px : -pixels_per_win;
-            if (!child->IsCorrectSize(r_w, new_height)) {
-                return;
-            }
-        }
-    }
-    else {
-        for (auto child : childs_) {
-            int new_width = child->GetWidth();
-            new_width += child == node ? 2 * px : -pixels_per_win;
-            if (!child->IsCorrectSize(new_width, r_h)) {
-                return;
-            }
+    for (auto child : childs_) {
+        int new_size = GetChildSize(child);
+        new_size += child == node ? 2 * px : -pixels_per_win;
+        if ((orient_ == Orientation::HORIZONTAL && !child->IsCorrectSize(new_size, r_h))
+         || (orient_ == Orientation::VERTICAL && !child->IsCorrectSize(r_w, new_size))) {
+            return;
         }
     }
 
@@ -273,4 +246,12 @@ vector<Frame::ptr>::iterator Container::FindChild(Frame::ptr node) {
 
 std::vector<Frame::ptr>::const_iterator Container::FindChild(Frame::ptr node) const {
     return find(begin(childs_), end(childs_), node);
+}
+
+uint16_t Container::GetChildSize(Frame::ptr node) const {
+    return orient_ == Orientation::HORIZONTAL ? node->GetWidth() : node->GetHeight();
+}
+
+uint16_t Container::GetReqDimension(uint16_t width, uint16_t height) const {
+    return orient_ == Orientation::HORIZONTAL ? width : height;
 }

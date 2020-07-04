@@ -60,4 +60,7 @@ private:
 
     std::vector<Frame::ptr>::iterator FindChild(Frame::ptr node);
     std::vector<Frame::ptr>::const_iterator FindChild(Frame::ptr node) const;
+
+    uint16_t GetChildSize(Frame::ptr node) const;
+    uint16_t GetReqDimension(uint16_t width, uint16_t height) const;
 };

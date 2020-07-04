@@ -288,44 +288,11 @@ void WindowManager::OnEnterNotify(xcb_generic_event_t *raw_event) {
 void WindowManager::OnConfigureRequest(xcb_generic_event_t *raw_event) {
     auto event = reinterpret_cast<xcb_configure_request_event_t *>(raw_event);
 
-    auto &mask = event->value_mask;
-    auto &window_id = event->window;
+    auto window_id = event->window;
     
     if (workspaces_[current_ws_].Contains(window_id)) {
         workspaces_[current_ws_].ProcessEventByWindow(window_id, raw_event);
         return;
-    }
-
-    vector<uint32_t> values;
-    values.reserve(7);
-
-    if (mask & XCB_CONFIG_WINDOW_X) {
-        values.push_back(event->x);
-    }
-    if (mask & XCB_CONFIG_WINDOW_Y) {
-        values.push_back(event->y);
-    }
-    if (mask & XCB_CONFIG_WINDOW_WIDTH) {
-        values.push_back(event->width);
-    }
-    if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
-        values.push_back(event->height);
-    }
-    if (mask & XCB_CONFIG_WINDOW_SIBLING) {
-        values.push_back(event->sibling);
-    }
-    if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
-        values.push_back(event->stack_mode);
-    }
-
-    if (values.size()) {
-        xcb_configure_window(
-            connection_,
-            window_id,
-            mask,
-            values.data()
-        );
-        xcb_flush(connection_);
     }
 }
 
