@@ -10,8 +10,6 @@ Tree::Tree() :
 
 }
 
-#include <iostream>
-
 void Tree::SetRoot(Frame::ptr frame) {
     id_to_node_.clear();
 

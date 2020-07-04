@@ -49,9 +49,7 @@ public:
 
     void AddChild(Frame::ptr node, size_t pos = 0);
     void AddChildAfter(Frame::ptr after_node, Frame::ptr node);
-    void RemoveChild(size_t pos);
     void RemoveChild(Frame::ptr node);
-    void ReplaceChild(size_t pos, Frame::ptr new_node);
     void ReplaceChild(Frame::ptr node, Frame::ptr new_node);
     bool ContainsChild(Frame::ptr node) const;
 

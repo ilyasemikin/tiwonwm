@@ -3,8 +3,6 @@
 #include <xcb/xcb.h>
 
 #include <memory>
-#include <string>
-#include <list>
 
 #include "configs.hpp"
 #include "display.hpp"
