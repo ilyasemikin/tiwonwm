@@ -52,10 +52,6 @@ private:
 
     void SetWorkspace(size_t ws_number);
 
-    void SwitchWorkspaceTiling();
-    void RotateWorkspaceFrame();
-    void ResizeWorkspaceWindow(Orientation orient, uint16_t px);
-
     void Exit();
 
     bool exit_;

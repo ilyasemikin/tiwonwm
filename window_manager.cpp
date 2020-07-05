@@ -136,43 +136,43 @@ bool WindowManager::SetUpKeys() {
     if (config_.terminal != "") {
         keys_.insert({ 
             GetKeyCode(key_symbs, config_.keys.open_terminal).second, 
-            bind(&WindowManager::ExecApplication, this, config_.terminal)
+            [this]() { ExecApplication(config_.terminal); }
         });
     }
 
     keys_.insert({
         GetKeyCode(key_symbs, config_.keys.switch_tiling).second,
-        bind(&WindowManager::SwitchWorkspaceTiling, this)
+        [this]() { workspaces_[current_ws_].SwitchTilingOrient(); }
     });
 
     keys_.insert({
         GetKeyCode(key_symbs, config_.keys.rotate_frame).second,
-        bind(&WindowManager::RotateWorkspaceFrame, this)
+        [this]() { workspaces_[current_ws_].RotateFocusFrame(); }
     });
 
     keys_.insert({
         GetKeyCode(key_symbs, config_.keys.left).second,
-        bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::VERTICAL, -config_.resize_px)
+        [this]() { workspaces_[current_ws_].ResizeWindow(Orientation::VERTICAL, -config_.resize_px); }
     });
 
     keys_.insert({
         GetKeyCode(key_symbs, config_.keys.right).second,
-        bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::VERTICAL, config_.resize_px)
+        [this]() { workspaces_[current_ws_].ResizeWindow(Orientation::VERTICAL, config_.resize_px); }
     });
 
     keys_.insert({
         GetKeyCode(key_symbs, config_.keys.up).second,
-        bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::HORIZONTAL, config_.resize_px)
+        [this]() { workspaces_[current_ws_].ResizeWindow(Orientation::HORIZONTAL, config_.resize_px); }
     });
     
     keys_.insert({
         GetKeyCode(key_symbs, config_.keys.down).second,
-        bind(&WindowManager::ResizeWorkspaceWindow, this, Orientation::HORIZONTAL, -config_.resize_px)
+        [this]() { workspaces_[current_ws_].ResizeWindow(Orientation::HORIZONTAL, -config_.resize_px); }
     });
 
     keys_.insert({
         GetKeyCode(key_symbs, config_.keys.exit).second,
-        bind(&WindowManager::Exit, this)
+        [this]() { exit_ = true; }
     });
 
     xcb_key_symbols_free(key_symbs);
@@ -333,20 +333,4 @@ void WindowManager::SetWorkspace(size_t ws_number) {
     current_ws_ = ws_number;
 
     workspaces_[current_ws_].Show();
-}
-
-void WindowManager::SwitchWorkspaceTiling() {
-    workspaces_[current_ws_].SwitchTilingOrient();
-}
-
-void WindowManager::RotateWorkspaceFrame() {
-    workspaces_[current_ws_].RotateFocusFrame();
-}
-
-void WindowManager::ResizeWorkspaceWindow(Orientation orient, uint16_t px) {
-    workspaces_[current_ws_].ResizeWindow(orient, px);
-}
-
-void WindowManager::Exit() {
-    exit_ = true;
 }
