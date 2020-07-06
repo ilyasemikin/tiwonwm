@@ -225,10 +225,10 @@ bool Container::IsCorrectSize(uint16_t width, uint16_t height) const {
 
     for (size_t i = 0; i < CountChilds(); i++) {
         if (!childs_[i]->IsCorrectSize(width, height)) {
-            return true;
+            return false;
         }
     }
-    return false;
+    return true;
 }
 
 void Container::Move(int16_t x, int16_t y) {
@@ -334,6 +334,12 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
 
     auto cont = dynamic_pointer_cast<Container>(shared_from_this());
     auto sizes = state_->GetFrameWithResizedChild(cont, it - begin(childs_), px);
+
+    for (size_t i = 0; i < CountChilds(); i++) {
+        if (!childs_[i]->IsCorrectSize(sizes[i].width, sizes[i].height)) {
+            return;
+        }
+    }
 
     for (size_t i = 0; i < CountChilds(); i++) {
         childs_[i]->MoveResize(
