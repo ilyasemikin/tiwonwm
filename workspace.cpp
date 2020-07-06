@@ -9,8 +9,6 @@ using namespace std;
 Workspace::Workspace(xcb_connection_t *connection) :
     connection_(connection)
 {
-    active_window_.exist = false;
-
     t_orient_ = Orientation::HORIZONTAL;
 
     SetDefaultConfig();
@@ -54,7 +52,7 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     }
     else {
         wins_tree_.AddNeighbour(
-            active_window_.id,
+            active_window_->GetId(),
             win,
             t_orient_
         );
@@ -81,8 +79,8 @@ void Workspace::RemoveWindow(xcb_window_t w_id) {
     wins_tree_.Remove(win->GetId());
 
     // Если удаляемое окно последнее, то фокусируемся на предпоследнем
-    if (active_window_.id == win->GetId()) {
-        active_window_.exist = false;
+    if (active_window_->GetId() == win->GetId()) {
+        active_window_ = nullptr;
         if (!wins_tree_.Empty()) {
             // TODO: установить фокус на некотором окне осмысленно, а не случайно
             SetFocus(wins_tree_.begin()->first);
@@ -107,44 +105,43 @@ void Workspace::Hide() {
 }
 
 void Workspace::SetFocus(xcb_window_t w_id) {
-    if (active_window_.exist && w_id == active_window_.id) {
+    if (active_window_ != nullptr && w_id == active_window_->GetId()) {
         return;
     }
 
     // Сбрасываем текущий фокус
-    if (active_window_.exist) {
-        active_window_.exist = false;
-        wins_tree_.GetWindow(active_window_.id)->Unfocus(config_.unfocused_border_color);
+    if (active_window_ != nullptr) {
+        active_window_->Unfocus(config_.unfocused_border_color);
+        active_window_ = nullptr;
     }
 
     if (!Contains(w_id)) {
         return;
     }
 
-    active_window_.id = w_id;
-    active_window_.exist = true;
-    wins_tree_.GetWindow(w_id)->Focus(config_.focused_border_color);
+    active_window_ = wins_tree_.GetWindow(w_id);
+    active_window_->Focus(config_.focused_border_color);
 
     xcb_flush(connection_);
 }
 
 void Workspace::RotateFocusFrame() {
-    if (!active_window_.exist) {
+    if (active_window_ == nullptr) {
         return;
     }
 
-    wins_tree_.RotateFrameWithWindow(active_window_.id);
+    wins_tree_.RotateFrameWithWindow(active_window_->GetId());
 
     ShowFrames();
 }
 
 void Workspace::ResizeWindow(Orientation orient, int16_t px) {
-    if (!active_window_.exist) {
+    if (active_window_ == nullptr) {
         return;
     }
 
-    auto win = wins_tree_.GetWindow(active_window_.id);
-    auto parent = wins_tree_.GetContainerWithWindow(active_window_.id);
+    auto win = wins_tree_.GetWindow(active_window_->GetId());
+    auto parent = wins_tree_.GetContainerWithWindow(active_window_->GetId());
     if (parent->GetOrientation() != orient) {
         // Изменение размера окна в рамках фрейма
         parent->ResizeChild(win, px);
@@ -224,8 +221,6 @@ void Workspace::SetDefaultConfig() {
     config_.focused_border_color = GetColor(0, 0, 0);
 }
 
-// FIXME: при определенном количестве окон на экране появляется
-// полоса в пару пикселей справа
 void Workspace::ShowFrames() {
     if (!wins_tree_.Empty()) {
         ShowFrame(

@@ -11,6 +11,8 @@ class Frame : public std::enable_shared_from_this<Frame> {
 public:
     virtual ~Frame();
 
+    void operator=(Frame &other) = delete;
+
     using ptr = std::shared_ptr<Frame>;
     using const_ptr = std::shared_ptr<const Frame>;
 

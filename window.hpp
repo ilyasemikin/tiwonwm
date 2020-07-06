@@ -2,6 +2,7 @@
 
 #include <xcb/xcb.h>
 
+#include "display.hpp"
 #include "frame.hpp"
 
 class Window : public Frame {

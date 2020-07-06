@@ -39,6 +39,8 @@ public:
 
     void ResizeWindow(Orientation orient, int16_t px);
 
+    void MaximizeWindow();
+
     bool Contains(xcb_window_t w_id);
 
     // Обработка событий, для которых требуется определенная информация 
@@ -61,10 +63,7 @@ private:
 
     Tree wins_tree_;
 
-    struct {
-        bool exist;
-        xcb_window_t id;
-    } active_window_;
+    std::shared_ptr<Window> active_window_;
 
     Orientation t_orient_;
 
