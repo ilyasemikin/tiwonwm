@@ -7,6 +7,59 @@
 #include "frame.hpp"
 #include "utils.hpp"
 
+class Container;
+
+namespace ContainerStates {
+    class State {
+    public:
+        virtual ~State();
+
+        std::vector<xcb_rectangle_t> GetNewFrameRect(std::shared_ptr<Container> cont, xcb_rectangle_t rect);
+        std::vector<xcb_rectangle_t> GetFrameWithResizedChild(std::shared_ptr<Container> cont, size_t index, int16_t px);
+    protected:
+        uint16_t exp_width_;
+        uint16_t exp_height_;
+
+        uint16_t cur_width_;
+        uint16_t cur_height_;
+
+        Frame::ptr cur_child_;
+        Frame::ptr last_child_;
+
+        bool exit_;
+
+        virtual uint16_t GetNewWidth(int px) = 0;
+        virtual uint16_t GetNewWdith(double mult) = 0;
+        virtual uint16_t GetNewHeight(int px) = 0;
+        virtual uint16_t GetNewHeight(double mult) = 0;
+
+        virtual int16_t GetNextX(int16_t x, uint16_t width) = 0;
+        virtual int16_t GetNextY(int16_t y, uint16_t height) = 0;
+    };
+
+    class Vertical : public State {
+    protected:
+        uint16_t GetNewWidth(int px) override;
+        uint16_t GetNewWdith(double mult) override;
+        uint16_t GetNewHeight(int px) override;
+        uint16_t GetNewHeight(double mult) override;
+
+        int16_t GetNextX(int16_t x, uint16_t width) override;
+        int16_t GetNextY(int16_t y, uint16_t height) override;
+    };
+
+    class Horizontal : public State {
+    protected:
+        uint16_t GetNewWidth(int px) override;
+        uint16_t GetNewWdith(double mult) override;
+        uint16_t GetNewHeight(int px) override;
+        uint16_t GetNewHeight(double mult) override;
+
+        int16_t GetNextX(int16_t x, uint16_t width) override;
+        int16_t GetNextY(int16_t y, uint16_t height) override;
+    };
+}
+
 class Container : public Frame {
 public:
     Container();
@@ -28,9 +81,7 @@ public:
     void Resize(uint16_t width, uint16_t height) override;
     void MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) override;
 
-    inline void SetOrientation(Orientation orient) {
-        orient_ = orient;
-    }
+    void SetOrientation(Orientation orient);
 
     inline Orientation GetOrientation() const {
         return orient_;
@@ -59,9 +110,8 @@ private:
     std::vector<Frame::ptr> childs_;
     Orientation orient_;
 
+    std::shared_ptr<ContainerStates::State> state_;
+
     std::vector<Frame::ptr>::iterator FindChild(Frame::ptr node);
     std::vector<Frame::ptr>::const_iterator FindChild(Frame::ptr node) const;
-
-    uint16_t GetChildSize(Frame::ptr node) const;
-    uint16_t GetReqDimension(uint16_t width, uint16_t height) const;
 };

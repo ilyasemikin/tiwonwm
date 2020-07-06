@@ -46,6 +46,8 @@ void Window::Move(int16_t x, int16_t y) {
       | XCB_CONFIG_WINDOW_Y,
         values
     );
+
+    xcb_flush(connection_);
 }
 
 void Window::Resize(uint16_t width, uint16_t height) {
@@ -68,6 +70,8 @@ void Window::Resize(uint16_t width, uint16_t height) {
       | XCB_CONFIG_WINDOW_HEIGHT,
         values
     );
+
+    xcb_flush(connection_);
 }
 
 void Window::MoveResize(int16_t x, int16_t y, uint16_t width, uint16_t height) {
