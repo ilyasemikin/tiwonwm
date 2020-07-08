@@ -5,164 +5,8 @@
 
 using namespace std;
 
-namespace ContainerStates {
-    State::~State() {
-
-    }
-
-    vector<xcb_rectangle_t> State::GetNewFrameRect(shared_ptr<Container> cont, xcb_rectangle_t rect) {
-        if (cont == nullptr || !cont->CountChilds()) {
-            return { };
-        }
-        
-        exit_ = false;
-
-        last_child_ = cont->GetChild(cont->CountChilds() - 1);
-
-        exp_width_ = rect.width;
-        exp_height_ = rect.height;
-
-        cur_width_ = cur_height_ = 0;
-
-        auto w_mult_ = static_cast<double>(rect.width) / cont->GetWidth();
-        auto h_mult_ = static_cast<double>(rect.height) / cont->GetHeight();
-
-        auto x = rect.x;
-        auto y = rect.y;
-        vector<xcb_rectangle_t> ret(cont->CountChilds());
-        for (size_t i = 0; i < ret.size(); i++) {
-            cur_child_ = cont->GetChild(i);
-
-            ret[i].x = x;
-            ret[i].y = y;
-            ret[i].width = GetNewWdith(w_mult_);
-            ret[i].height = GetNewHeight(h_mult_);
-
-            if (exit_) {
-                break;
-            }
-
-            x = GetNextX(x, ret[i].width);
-            y = GetNextY(y, ret[i].height);
-        }
-
-        if (exit_) {
-            ret.clear();
-        }
-        
-        last_child_ = cur_child_ = nullptr;
-
-        return ret;
-    }
-
-    vector<xcb_rectangle_t> State::GetFrameWithResizedChild(std::shared_ptr<Container> cont, size_t index, int16_t px) {
-        if (cont == nullptr || cont->CountChilds() < 2) {
-            return { };
-        }
-
-        exp_width_ = cont->GetWidth();
-        exp_height_ = cont->GetHeight();
-
-        auto px_per_other = (2 * px) / static_cast<int>(cont->CountChilds() - 1);
-
-        cur_width_ = cur_height_ = 0;
-        last_child_ = cont->GetChild(cont->CountChilds() - 1);
-
-        auto x = cont->GetX();
-        auto y = cont->GetY();
-
-        vector<xcb_rectangle_t> ret(cont->CountChilds());
-        for (size_t i = 0; i < cont->CountChilds(); i++) {
-            cur_child_ = cont->GetChild(i);
-            int c_px = (i == index) ?  2 * px : -px_per_other;
-
-            ret[i].x = x;
-            ret[i].y = y;
-            ret[i].width = GetNewWidth(c_px);
-            ret[i].height = GetNewHeight(c_px);
-
-            x = GetNextX(x, ret[i].width);
-            y = GetNextY(y, ret[i].height);
-        }
-
-        return ret;
-    }
-
-    // Vertical state
-    uint16_t Vertical::GetNewWidth(int) {
-        return exp_width_;
-    }
-
-    uint16_t Vertical::GetNewWdith(double) {
-        return exp_width_;
-    }
-
-    uint16_t Vertical::GetNewHeight(int px) {
-        auto ret = cur_child_->GetHeight() + px;
-        if (cur_child_ == last_child_) {
-            ret = exp_height_ - cur_height_;
-        }
-        cur_height_ += ret;
-        return ret;
-    }
-
-    uint16_t Vertical::GetNewHeight(double mult) {
-        auto ret = static_cast<uint16_t>(cur_child_->GetHeight() * mult);
-        if (cur_child_ == last_child_) {
-            ret = exp_height_ - cur_height_;
-        }
-        cur_height_ += ret;
-        return ret;
-    }
-
-    int16_t Vertical::GetNextX(int16_t x, uint16_t) {
-        return x;
-    }
-    
-    int16_t Vertical::GetNextY(int16_t y, uint16_t height) {
-        return y + height;
-    }
-
-    // Horizontal state
-    uint16_t Horizontal::GetNewWidth(int px) {
-        auto ret = cur_child_->GetWidth() + px;
-        if (cur_child_ == last_child_) {
-            ret = exp_width_ - cur_width_;
-        }
-        cur_width_ += ret;
-        return ret;
-    }
-
-    uint16_t Horizontal::GetNewWdith(double mult) {
-        auto ret = static_cast<uint16_t>(cur_child_->GetWidth() * mult);
-        if (cur_child_ == last_child_) {
-            ret = exp_width_ - cur_width_;
-        }
-        cur_width_ += ret;
-        return ret;
-    }
-
-    uint16_t Horizontal::GetNewHeight(int) {
-        return exp_height_;
-    }
-
-    uint16_t Horizontal::GetNewHeight(double) {
-        return exp_height_;
-    }
-
-    int16_t Horizontal::GetNextX(int16_t x, uint16_t width) {
-        return x + width;
-    }
-    
-    int16_t Horizontal::GetNextY(int16_t y, uint16_t) {
-        return y;
-    }
-}
-
 Container::Container() :
-    orient_(Orientation::HORIZONTAL),
-    // FIXME: грамотно инициализировать
-    state_(make_shared<ContainerStates::Horizontal>())
+    orient_(Orientation::HORIZONTAL)
 {
 
 }
@@ -223,8 +67,17 @@ bool Container::IsCorrectSize(uint16_t width, uint16_t height) const {
         return false;
     }
 
+    xcb_rectangle_t rect;
+    rect.width = width;
+    rect.height = height;
+    auto sizes = GetNewFrameRect(rect);
+
+    if (sizes.empty()) {
+        return false;
+    }
+
     for (size_t i = 0; i < CountChilds(); i++) {
-        if (!childs_[i]->IsCorrectSize(width, height)) {
+        if (!childs_[i]->IsCorrectSize(sizes[i].width, sizes[i].height)) {
             return false;
         }
     }
@@ -250,8 +103,7 @@ void Container::Resize(uint16_t width, uint16_t height) {
     rect.width = width;
     rect.height = height;
 
-    auto cont = dynamic_pointer_cast<Container>(shared_from_this());
-    auto sizes = state_->GetNewFrameRect(cont, rect);
+    auto sizes = GetNewFrameRect(rect);
     
     for (size_t i = 0; i < childs_.size(); i++) {
         childs_[i]->MoveResize(
@@ -275,12 +127,6 @@ void Container::SetOrientation(Orientation orient) {
     }
 
     orient_ = orient;
-    if (orient_ == Orientation::VERTICAL) {
-        state_ = make_shared<ContainerStates::Vertical>();
-    }
-    else {
-        state_ = make_shared<ContainerStates::Horizontal>();
-    }
 }
 
 // TODO: добавить способы оповещения вызывающей стороны
@@ -332,8 +178,11 @@ void Container::ResizeChild(Frame::ptr node, int16_t px) {
         return;
     }
 
-    auto cont = dynamic_pointer_cast<Container>(shared_from_this());
-    auto sizes = state_->GetFrameWithResizedChild(cont, it - begin(childs_), px);
+    auto sizes = GetFrameWithResizedChild(it - begin(childs_), px);
+
+    if (sizes.empty()) {
+        return;
+    }
 
     for (size_t i = 0; i < CountChilds(); i++) {
         if (!childs_[i]->IsCorrectSize(sizes[i].width, sizes[i].height)) {
@@ -357,4 +206,109 @@ vector<Frame::ptr>::iterator Container::FindChild(Frame::ptr node) {
 
 std::vector<Frame::ptr>::const_iterator Container::FindChild(Frame::ptr node) const {
     return find(begin(childs_), end(childs_), node);
+}
+
+vector<xcb_rectangle_t> Container::GetNewFrameRect(xcb_rectangle_t rect) const {
+    if (!CountChilds()) {
+        return {};
+    }
+
+    xcb_rectangle_t cur_rect;
+    cur_rect.width = 0;
+    cur_rect.height = 0;
+
+    if (orient_ == Orientation::VERTICAL) {
+        cur_rect.width = rect.width;
+    }
+    else {
+        cur_rect.height = rect.height;
+    }
+
+    auto w_mult_ = static_cast<double>(rect.width) / GetWidth();
+    auto h_mult_ = static_cast<double>(rect.height) / GetHeight();
+
+    auto x = rect.x;
+    auto y = rect.y;
+    
+    uint16_t vert = orient_ == Orientation::VERTICAL ? 1 : 0;
+    vector<xcb_rectangle_t> ret(CountChilds());
+    for (size_t i = 0; i < ret.size(); i++) {
+        auto child = GetChild(i);
+
+        ret[i].x = x;
+        ret[i].y = y;
+        ret[i].width = vert * rect.width + (1 - vert) * static_cast<uint16_t>(child->GetWidth() * w_mult_);
+        ret[i].height = (1 - vert) * rect.height + vert * static_cast<uint16_t>(child->GetHeight() * h_mult_);
+
+        cur_rect.width += (1 - vert) * ret[i].width;
+        cur_rect.height += vert * ret[i].height;
+
+        x += (1 - vert) * ret[i].width;
+        y += vert * ret[i].height;
+    }
+
+    int w_d = rect.width - cur_rect.width;
+    int h_d = rect.height - cur_rect.height;
+    if (w_d || h_d) {
+        auto &item = ret.back();
+        item.width += w_d;
+        item.height += h_d;
+    }
+
+    return ret;
+}
+
+vector<xcb_rectangle_t> Container::GetFrameWithResizedChild(size_t index, int16_t px) const {
+    if (CountChilds() < 2) {
+        return {};
+    }
+
+    xcb_rectangle_t exp_rect;
+    exp_rect.width = GetWidth();
+    exp_rect.height = GetHeight();
+
+    auto px_per_other = (2 * px) / static_cast<int>(CountChilds() - 1);
+
+    xcb_rectangle_t cur_rect;
+    cur_rect.width = 0;
+    cur_rect.height = 0;
+
+    if (orient_ == Orientation::VERTICAL) {
+        cur_rect.width = exp_rect.width;
+    }
+    else {
+        cur_rect.height = exp_rect.height;
+    }
+
+    auto x = GetX();
+    auto y = GetY();
+
+    uint16_t vert = orient_ == Orientation::VERTICAL ? 1 : 0;
+
+    vector<xcb_rectangle_t> ret(CountChilds());
+    for (size_t i = 0; i < ret.size(); i++) {
+        auto child = GetChild(i);
+        int c_px = (i == index) ?  2 * px : -px_per_other;
+
+        ret[i].x = x;
+        ret[i].y = y;
+        ret[i].width = vert * exp_rect.width + (1 - vert) * (child->GetWidth() + c_px );
+        ret[i].height = (1 - vert) * exp_rect.height + vert * (child->GetHeight() + c_px );
+
+        cur_rect.width += (1 - vert) * ret[i].width;
+        cur_rect.height += vert * ret[i].height;
+
+        x += (1 - vert) * ret[i].width;
+        y += vert * ret[i].height;
+    }
+
+    int w_d = exp_rect.width - cur_rect.width;
+    int h_d = exp_rect.height - cur_rect.height;
+    if (w_d || h_d) {
+        auto &item = ret.back();
+        item.width += w_d;
+        item.height += h_d;
+    }
+
+    return ret;
 }
