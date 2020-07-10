@@ -48,6 +48,7 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
     win->Map();
 
     if (wins_tree_.Empty()) {
+        win->MoveResize(0, 0, display_->width, display_->height);
         wins_tree_.SetRoot(win);
     }
     else {
@@ -60,7 +61,7 @@ void Workspace::InsertWindow(xcb_window_t w_id) {
 
     SetFocus(win->GetId());
 
-    ShowFrames();
+    // ShowFrames();
 }
 
 void Workspace::RemoveWindow(xcb_window_t w_id) {

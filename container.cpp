@@ -136,8 +136,58 @@ void Container::AddChild(Frame::ptr node, size_t pos) {
         return;
     }
 
+    vector<xcb_rectangle_t> sizes;
+
+    if (childs_.size()) {
+        xcb_rectangle_t exp_rect;
+        exp_rect.width = GetWidth();
+        exp_rect.height = GetHeight();
+
+        uint16_t vert = orient_ == Orientation::VERTICAL ? 1 : 0;
+        xcb_rectangle_t win_r;
+        win_r.width = exp_rect.width / ((1 - vert) * CountChilds() + 1);
+        win_r.height = exp_rect.height / (vert * CountChilds() + 1);
+
+        xcb_rectangle_t w_old_sizes;
+        w_old_sizes.x = GetX();
+        w_old_sizes.y = GetY();
+        w_old_sizes.width = exp_rect.width - (1 - vert) * win_r.width;
+        w_old_sizes.height = exp_rect.height - vert * win_r.height;
+
+        sizes = GetNewFrameRect(w_old_sizes);
+        if (pos == 0) {
+            win_r.x = sizes[0].x;
+            win_r.y = sizes[0].y;
+        }
+        else if (pos == sizes.size()) {
+            win_r.x = sizes[pos - 1].x;
+            win_r.y = sizes[pos - 1].y;
+        }
+        else {
+            win_r.x = sizes[pos].x;
+            win_r.y = sizes[pos].y;
+        }
+        sizes.insert(begin(sizes) + pos, win_r);
+
+        for (size_t i = pos + 1; i < sizes.size(); i++) {
+            sizes[i].x += (1 - vert) * win_r.width;
+            sizes[i].y += vert * win_r.height;
+        }
+    }
+
     childs_.insert(childs_.begin() + pos, node);
     node->SetParent(shared_from_this());
+
+    if (!sizes.empty()) {
+        for (size_t i = 0; i < sizes.size(); i++) {
+            childs_[i]->MoveResize(
+                sizes[i].x,
+                sizes[i].y,
+                sizes[i].width,
+                sizes[i].height
+            );
+        }
+    }
 }
 
 void Container::AddChildAfter(Frame::ptr after_node, Frame::ptr node) {
@@ -147,8 +197,7 @@ void Container::AddChildAfter(Frame::ptr after_node, Frame::ptr node) {
         return;
     }
 
-    childs_.insert(next(it), node);
-    node->SetParent(shared_from_this());
+    AddChild(node, it - begin(childs_));
 }
 
 void Container::RemoveChild(Frame::ptr node) {
@@ -163,9 +212,15 @@ void Container::ReplaceChild(Frame::ptr node, Frame::ptr new_node) {
     auto it = FindChild(node);
 
     if (it != end(childs_)) {
+        new_node->MoveResize(
+            (*it)->GetX(),
+            (*it)->GetY(),
+            (*it)->GetWidth(),
+            (*it)->GetHeight()
+        );
         *it = new_node;
+        new_node->SetParent(shared_from_this());
     }
-    new_node->SetParent(shared_from_this());
 }
 
 bool Container::ContainsChild(Frame::ptr node) const {
@@ -173,16 +228,16 @@ bool Container::ContainsChild(Frame::ptr node) const {
 }
 
 void Container::ResizeChild(Frame::ptr node, int16_t px) {
+    if (CountChilds() == 1) {
+        return;
+    }
+    
     auto it = FindChild(node);
     if (it == end(childs_)) {
         return;
     }
 
     auto sizes = GetFrameWithResizedChild(it - begin(childs_), px);
-
-    if (sizes.empty()) {
-        return;
-    }
 
     for (size_t i = 0; i < CountChilds(); i++) {
         if (!childs_[i]->IsCorrectSize(sizes[i].width, sizes[i].height)) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -60,6 +61,6 @@ private:
     std::vector<Frame::ptr>::iterator FindChild(Frame::ptr node);
     std::vector<Frame::ptr>::const_iterator FindChild(Frame::ptr node) const;
     
-    std::vector<xcb_rectangle_t> GetNewFrameRect(xcb_rectangle_t rect) const;
+        std::vector<xcb_rectangle_t> GetNewFrameRect(xcb_rectangle_t rect) const;
     std::vector<xcb_rectangle_t> GetFrameWithResizedChild(size_t index, int16_t px) const;
 };
