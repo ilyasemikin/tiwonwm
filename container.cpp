@@ -131,6 +131,7 @@ void Container::SetOrientation(Orientation orient) {
 
 // TODO: добавить способы оповещения вызывающей стороны
 // о ошибке в функции
+// TODO: подумать о рефакторинге
 void Container::AddChild(Frame::ptr node, size_t pos) {
     if (pos > childs_.size()) {
         return;
@@ -173,9 +174,31 @@ void Container::AddChild(Frame::ptr node, size_t pos) {
             sizes[i].x += (1 - vert) * win_r.width;
             sizes[i].y += vert * win_r.height;
         }
+
+        xcb_rectangle_t cur_rect;
+        cur_rect.width = cur_rect.height = 0;
+        for (auto size : sizes) {
+            cur_rect.width += size.width;
+            cur_rect.height += size.height;
+        }
+        
+        if (orient_ == Orientation::VERTICAL) {
+            cur_rect.width = exp_rect.width;
+        }
+        else {
+            cur_rect.height = exp_rect.height;
+        }
+
+        int w_d = exp_rect.width - cur_rect.width;
+        int h_d = exp_rect.height - cur_rect.height;
+        if (w_d || h_d) {
+            auto &item = sizes.back();
+            item.width += w_d;
+            item.height += h_d;
+        }
     }
 
-    childs_.insert(childs_.begin() + pos, node);
+    childs_.insert(begin(childs_) + pos, node);
     node->SetParent(shared_from_this());
 
     if (!sizes.empty()) {
